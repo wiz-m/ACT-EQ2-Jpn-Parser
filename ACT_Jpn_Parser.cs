@@ -17,14 +17,14 @@ using System.Globalization;
 [assembly: AssemblyTitle("Japanese(JPN) Parsing Engine")]
 [assembly: AssemblyDescription("Plugin based parsing engine for Japanese EQ2 servers running the Japanese client")]
 [assembly: AssemblyCompany("Mayia of Sebilis")]
-[assembly: AssemblyVersion("1.1.0.1")]
+[assembly: AssemblyVersion("1.1.0.2")]
 
 // NOTE: このpluginは、ACT公式のEn-Jp_ParserのVer.1.1.1.9を元に、日本語環境のままで使用できるように改造したものです。ほぼ全ての機能を取り込んでいると思います。
 // NOTE: 解析者向け（＝自分用）に「pluginで解析できなかったログをファイルに出力する」隠し機能を搭載しております。ファイルの１行目の // を外すと利用可能。
 // NOTE: Obanburumai様のご協力により、EQ2側のバグによりアーツ名の直後で改行されていて取り込めなかったアーツ（ラッキー・ギャンビット、ワイルド・アクリーション、他にもあるかも？）を取得できるようにしております。（2015/01現在、JPNプラグイン固有の機能です）
 ////////////////////////////////////////////////////////////////////////////////
-// $Date: 2015-01-31 21:36:27 +0900 (2015/01/31 (土)) $
-// $Rev: 25 $
+// $Date: 2015-02-07 18:14:48 +0900 (2015/02/07 (土)) $
+// $Rev: 27 $
 ////////////////////////////////////////////////////////////////////////////////
 namespace ACT_Plugin
 {
@@ -328,30 +328,31 @@ namespace ACT_Plugin
 
         private void PopulateRegexArray()
         {
-            regexArray = new Regex[22];
-            regexArray[0]  = new Regex(logTimeStampRegexStr + @"(?<victim>.+?)(?:は|が) ?(?:(?<skillType>.+?)による攻撃を受け、)?(?<damageAndType>\d+(?:ポイント)?の.+?)ダメージを負(?:いまし|っ)た。(?:[（(](?<special>.+?)[（)])?", RegexOptions.Compiled);
-            regexArray[1]  = new Regex(logTimeStampRegexStr + @"(?<attacker>あなた|.+?)(?:は|が)(?<victim>.+?)(?:に ?|をヒット。)(?<damageAndType>.+?)の?ダメージ(?:を負わせた|を負わせました)?。(?:[（(](?<special>.+?)[）)])?", RegexOptions.Compiled);
-            regexArray[2]  = new Regex(logTimeStampRegexStr + @"(?<victim>.+?)(?:が|は) ?(?<attacker>.+?)(?:の放った|の|'s ?)(?<skill>.+?)により(?<damageAndType>\d+(?:ポイントの| +).+?)ダメージを受け(?:た|ました)。(?:[（(](?<special>.+)[）)])?", RegexOptions.Compiled);
-            regexArray[3]  = new Regex(logTimeStampRegexStr + @"(?<attacker>.+?)(?:の放った|の|'s ?)(?<skill>.+?)により、(?<victim>.+?)(?:が|は)(?<damageAndType>\d+(?:ポイントの| +).+?)ダメージを受け(?:た|ました)。(?:[（(](?<special>.+)[）)])?", RegexOptions.Compiled);
-            regexArray[4]  = new Regex(logTimeStampRegexStr + @"(?<attacker>.+?)(?:の|'s ?)(?<skill>.+?)で ?(?<damageAndType>\d+ポイントの.+?)ダメージを受けましｈ?た。(?:[（(](?<special>.+?)[）)])?", RegexOptions.Compiled);
-            regexArray[5]  = new Regex(logTimeStampRegexStr + @"(?<healer>.+?) ?(?:の|は|'s ?)(?<skill>.+)(?:が|によって、)(?<victim>.+?)を(?:(?:ヒール|修復|リペア)してい(?:ます|る)|回復させました)(?<damage>\d+) ?ヒットポイントの?(?<crit>(?:フェイブルド|レジェンダリ|ミシカル)?クリティカル)?。", RegexOptions.Compiled);
-            regexArray[6]  = new Regex(logTimeStampRegexStr + @"(?<attacker>.+?)(?:が|は ?)(?<victim>.+?)を(?<skill>.+?で攻撃|攻撃|ヒット)(?:。はずした|(?:しましたが|しようとしましたが)、失敗しました)。(?:[（(](?<special>.+?)[）)])?", RegexOptions.Compiled);
-            regexArray[7]  = new Regex(logTimeStampRegexStr + @"(?<attacker>.+?)(?:が|は)(?<victim>.+?)を攻撃(?:。|しましたが、)(?<why>.+?)(?:がうまく妨害|によって妨げられま|はうまくかわしま)した。(?:[（(].*(?<special>ブロック|反撃|回避|受け流し|レジスト|反射|強打|カウンター).*[）)])?", RegexOptions.Compiled);
-            regexArray[8]  = new Regex(logTimeStampRegexStr + @"(?<attacker>.+?)(?:が|は){1}(?<victim>.+?)を(?<skill>.+?)で攻撃(?:しましたが、|。)(?<why>.+?)(?:がうまく妨害|によって妨げられま|はうまくかわしま)した。(?:[（(].*(?<special>ブロック|反撃|回避|受け流し|レジスト|反射|強打|カウンター).*[）)])?", RegexOptions.Compiled);
-            regexArray[9]  = new Regex(logTimeStampRegexStr + @"(?<victim>.+?)を倒した。", RegexOptions.Compiled);
-            regexArray[10] = new Regex(logTimeStampRegexStr + @"(?<victim>.+?)?が(?<attacker>.+?)(?:(?:の|'s ?).+?)?に殺された……。", RegexOptions.Compiled);
-            regexArray[11] = new Regex(logTimeStampRegexStr + @"(?<attacker>.+?)(?:(?:の|'s ?).+?)?に殺された……。", RegexOptions.Compiled);
-            //regexArray[11] = new Regex(logTimeStampRegexStr + @"(?<attacker>.+?)に殺された……。", RegexOptions.Compiled);
-            regexArray[12] = new Regex(logTimeStampRegexStr + @"Unknown command: 'act (.+)'", RegexOptions.Compiled);
-            regexArray[13] = new Regex(logTimeStampRegexStr + @"(?:(?<attacker>[^\\].+?)(?:が|の))?(?:(?<skill>.+?) ?(?:で|が|により))?(?<victim>.+?)?(?:を攻撃し|に命中し|にヒットし|攻撃を受け)、(?:ポイントパワーを)?(?<damage>\d+)ポイント(?:パワーを)?消耗(?:させ|し)(?:た|ました)。?(?:[（(](?<special>.+?)[）)])?", RegexOptions.Compiled);
-            regexArray[14] = new Regex(logTimeStampRegexStr + @"(?<victim>.+?)は(?<skill>.+?) ?によ(?:って|り)ポイントパワーを(?<damage>\d+)(?:ポイント)?消耗し(?:た|ました)。(?:[（(](?<special>.+?)[）)])?", RegexOptions.Compiled);
-            regexArray[15] = new Regex(logTimeStampRegexStr + @"(?<victim>.+)に対する(?<damage>\d+) ?ポイントダメージを(?<attacker>あなた|.+?)(?:の|'s) ?(?<skillType>.+?)が吸収した。", RegexOptions.Compiled);
-            regexArray[16] = new Regex(logTimeStampRegexStr + @"(?<skill>.+)は(?<damage>\d+) ?ポイントのダメージを吸収し、(?<victim>.+?)へのダメージを防いだ(?:。)?", RegexOptions.Compiled);
-            regexArray[17] = new Regex(logTimeStampRegexStr + @"You have entered (?<zone>.+?)\.", RegexOptions.Compiled);
-            regexArray[18] = new Regex(logTimeStampRegexStr + @"(?<healer>.+?)(?:が|は|の|'s ?)(?<skill>.+?)(?:が|で|によって) ?(?<victim>.+?)をリフレッシュしてい(?:る|ます)(?<damage>\d+) ?マナポイント(?:の)?(?<special>(?:フェイブルド|レジェンダリ|ミシカル)?クリティカル)?。", RegexOptions.Compiled);
-            regexArray[19] = new Regex(logTimeStampRegexStr + @"(?:(?<owner>.+?|あなた)(?:の|'s))? ?(?<skillType>.+?)(?:が|で) ?(?<victim>.+?)に対する(?<target>.*)のヘイト(?:順位)?を ?(?<direction>増加|減少) ?(?<damage>\d+) ?(?<dirType>脅威レベル|position)の?(?<crit>(?:フェイブルド|レジェンダリ|ミシカル)?クリティカル)?。", RegexOptions.Compiled);
-            regexArray[20] = new Regex(logTimeStampRegexStr + @"(?<attacker>.+?|あなた)(?:の|'s) ?(?<skillType>.+?)が ?(?:(?<victim>.+?|あなた))の(?<affliction>.+?)を(?<action>ディスペル|治療)しました。", RegexOptions.Compiled);
-            regexArray[21] = new Regex(logTimeStampRegexStr + @"(?<healer>.+?)[はが] ?(?<attacker>.+?)から(?<victim>.+?)へのダメージを ?(?<damage>\d+) ?減らし(?:まし)?た。", RegexOptions.Compiled);
+            regexArray = new Regex[23];
+            regexArray[0]  = new Regex(logTimeStampRegexStr + @"(?<victim>.+?)(?:は|が) ?(?:(?<skillType>.+?)による攻撃を受け、)?(?<damageAndType>\d+(?:ポイント)?の ?)ダメージを負(?:いまし|っ)た。(?:[（(](?<special>.+?)[（)])?", RegexOptions.Compiled);
+            regexArray[1]  = new Regex(logTimeStampRegexStr + @"(?<attacker>あなた|.+?)(?:は|が) ?(?<victim>.+?)(?:に ?|をヒット。)(?<damageAndType>.+?)の? ?ダメージ(?:を負わせ(?:まし)?た)?。(?:[（(](?<special>.+?)[）)])?", RegexOptions.Compiled);
+            regexArray[2]  = new Regex(logTimeStampRegexStr + @"(?<attacker>あなた|.+?)(?:は|が) ?(?<victim>.+?)(?:に ?|をヒット。)(?<damageAndType>.+?)ポイント与え(?:まし)?た。(?:[（(](?<special>.+?)[）)])?", RegexOptions.Compiled);
+            regexArray[3]  = new Regex(logTimeStampRegexStr + @"(?<victim>.+?)(?:が|は) ?(?<attacker>.+?)(?:の放った|の|'s) ?(?<skill>.+?)により(?<damageAndType>\d+(?:ポイントの| +).+?)ダメージを受け(?:た|ました)。(?:[（(](?<special>.+)[）)])?", RegexOptions.Compiled);
+            regexArray[4]  = new Regex(logTimeStampRegexStr + @"(?<attacker>.+?)(?:の放った|の|'s) ?(?<skill>.+?)により、(?<victim>.+?)(?:が|は) ?(?<damageAndType>\d+(?:ポイントの| +).+?)ダメージを受け(?:た|ました)。(?:[（(](?<special>.+)[）)])?", RegexOptions.Compiled);
+            regexArray[5]  = new Regex(logTimeStampRegexStr + @"(?<attacker>.+?)(?:の|'s) ?(?<skill>.+?)で ?(?<damageAndType>\d+ポイントの.+?)ダメージを受けましｈ?た。(?:[（(](?<special>.+?)[）)])?", RegexOptions.Compiled);
+            regexArray[6]  = new Regex(logTimeStampRegexStr + @"(?<healer>.+?) ?(?:の|は|'s ?) ?(?<skill>.+)(?:が ?|によって、)(?<victim>.+?)を ?(?:(?:ヒール|修復|リペア)してい(?:ます|る)|回復させました)(?<damage>\d+) ?ヒットポイントの?(?<crit>(?:フェイブルド|レジェンダリ|ミシカル)?クリティカル)?。", RegexOptions.Compiled);
+            regexArray[7]  = new Regex(logTimeStampRegexStr + @"(?<attacker>.+?)(?:が|は) ?(?<victim>.+?)を ?(?<skill>.+?で攻撃|攻撃|ヒット)(?:。はずした|(?:しましたが|しようとしましたが)、失敗しました)。(?:[（(](?<special>.+?)[）)])?", RegexOptions.Compiled);
+            regexArray[8]  = new Regex(logTimeStampRegexStr + @"(?<attacker>.+?)(?:が|は) ?(?<victim>.+?)を ?攻撃(?:。|しましたが、)(?<why>.+?)(?:が ?うまく妨害|によって妨げられま|は ?うまくかわしま)した。(?:[（(].*(?<special>ブロック|反撃|回避|受け流し|レジスト|反射|強打|カウンター).*[）)])?", RegexOptions.Compiled);
+            regexArray[9]  = new Regex(logTimeStampRegexStr + @"(?<attacker>.+?)(?:が|は) ?(?<victim>.+?)を ?(?<skill>.+?)で ?攻撃(?:しましたが、|。)(?<why>.+?)(?:が ?うまく妨害|によって妨げられま|は ?うまくかわしま)した。(?:[（(].*(?<special>ブロック|反撃|回避|受け流し|レジスト|反射|強打|カウンター).*[）)])?", RegexOptions.Compiled);
+            regexArray[10] = new Regex(logTimeStampRegexStr + @"(?<victim>.+?)を ?倒した。", RegexOptions.Compiled);
+            regexArray[11] = new Regex(logTimeStampRegexStr + @"(?<victim>.+?)?が ?(?<attacker>.+?)(?:(?:の|'s).+?)?に殺された……。", RegexOptions.Compiled);
+            regexArray[12] = new Regex(logTimeStampRegexStr + @"(?<attacker>.+?)(?:(?:の|'s).+?)?に殺された……。", RegexOptions.Compiled);
+            //regexArray[13] = new Regex(logTimeStampRegexStr + @"Unknown command: 'act (.+)'", RegexOptions.Compiled);
+            regexArray[13] = new Regex(logTimeStampRegexStr + @"不明コマンド： 'act (.+)'", RegexOptions.Compiled);
+            regexArray[14] = new Regex(logTimeStampRegexStr + @"(?:(?<attacker>[^\\].+?)(?:が|の) ?)?(?:(?<skill>.+?) ?(?:で ?|が ?|により))?(?<victim>.+?)?(?:を ?攻撃し|に ?命中し|に ?ヒットし|攻撃を受け)、(?:ポイントパワーを)?(?<damage>\d+)ポイント(?:パワーを)?消耗(?:させ|し)(?:た|ました)。?(?:[（(](?<special>.+?)[）)])?", RegexOptions.Compiled);
+            regexArray[15] = new Regex(logTimeStampRegexStr + @"(?<victim>.+?)は ?(?<skill>.+?) ?によ(?:って|り)ポイントパワーを(?<damage>\d+)(?:ポイント)?消耗し(?:た|ました)。(?:[（(](?<special>.+?)[）)])?", RegexOptions.Compiled);
+            regexArray[16] = new Regex(logTimeStampRegexStr + @"(?<victim>.+)に対する(?<damage>\d+) ?ポイントダメージを(?<attacker>あなた|.+?)(?:の|'s) ?(?<skillType>.+?)が吸収した。", RegexOptions.Compiled);
+            regexArray[17] = new Regex(logTimeStampRegexStr + @"(?<skill>.+)は ?(?<damage>\d+) ?ポイントのダメージを吸収し、(?<victim>.+?)へのダメージを防いだ(?:。)?", RegexOptions.Compiled);
+            regexArray[18] = new Regex(logTimeStampRegexStr + @"You have entered (?<zone>.+?)\.", RegexOptions.Compiled);
+            regexArray[19] = new Regex(logTimeStampRegexStr + @"(?<healer>.+?)(?:が|は|の|'s) ?(?<skill>.+?)(?:が|で|によって) ?(?<victim>.+?)をリフレッシュしてい(?:る|ます)(?<damage>\d+) ?マナポイント(?:の)?(?<special>(?:フェイブルド|レジェンダリ|ミシカル)?クリティカル)?。", RegexOptions.Compiled);
+            regexArray[20] = new Regex(logTimeStampRegexStr + @"(?:(?<owner>.+?|あなた)(?:の|'s))? ?(?<skillType>.+?)(?:が|で) ?(?<victim>.+?)に対する(?<target>.*)のヘイト(?:順位)?を ?(?<direction>増加|減少) ?(?<damage>\d+) ?(?<dirType>脅威レベル|position)の?(?<crit>(?:フェイブルド|レジェンダリ|ミシカル)?クリティカル)?。", RegexOptions.Compiled);
+            regexArray[21] = new Regex(logTimeStampRegexStr + @"(?<attacker>.+?|あなた)(?:の|'s) ?(?<skillType>.+?)が ?(?:(?<victim>.+?|あなた))の ?(?<affliction>.+?)を ?(?<action>ディスペル|治療)しました。", RegexOptions.Compiled);
+            regexArray[22] = new Regex(logTimeStampRegexStr + @"(?<healer>.+?)[はが] ?(?<attacker>.+?)から(?<victim>.+?)へのダメージを ?(?<damage>\d+) ?減らし(?:まし)?た。", RegexOptions.Compiled);
         }
         void oFormActMain_BeforeLogLineRead(bool isImport, LogLineEventArgs logInfo)
         {
@@ -387,22 +388,23 @@ namespace ACT_Plugin
                             case 2:
                             case 3:
                             case 4:
+                            case 5:
                                 logInfo.detectedType = Color.Red.ToArgb();
                                 break;
-                            case 5:
+                            case 6:
                                 logInfo.detectedType = Color.Blue.ToArgb();
                                 break;
-                            case 6:
                             case 7:
                             case 8:
+                            case 9:
                                 logInfo.detectedType = Color.DarkRed.ToArgb();
                                 break;
-                            case 13:
                             case 14:
+                            case 15:
                                 logInfo.detectedType = Color.DarkOrchid.ToArgb();
                                 break;
-                            case 15:
                             case 16:
+                            case 17:
                                 logInfo.detectedType = Color.DodgerBlue.ToArgb();
                                 break;
                             default:
@@ -491,7 +493,7 @@ namespace ACT_Plugin
             }
         }
 
-        string[] matchKeywords = new string[] { "ダメージ", "ヒットポイント", "マナポイント", "はずした", "失敗しました", "妨害した", "妨げられました", "かわしました", "倒した", "殺された", "command", "entered", "消耗", "ヘイト", "ディスペル", "治療" };
+        string[] matchKeywords = new string[] { "ダメージ", "ヒットポイント", "マナポイント", "はずした", "失敗しました", "妨害した", "妨げられました", "かわしました", "倒した", "殺された", "不明コマンド： 'act", "entered", "消耗", "ヘイト", "ディスペル", "治療" };
         private bool NotQuickFail(LogLineEventArgs logInfo)
         {
             foreach (string s in matchKeywords)
@@ -546,6 +548,7 @@ namespace ACT_Plugin
                 case 3:
                 case 4:
                 case 5:
+                case 6:
                     if (logMatched == 2) {
                         attacker = reMatch.Groups[1].Value;
                         victim = reMatch.Groups[2].Value;
@@ -559,6 +562,18 @@ namespace ACT_Plugin
                         else skillType = "攻撃";
                     }
                     else if (logMatched == 3) {
+                        attacker = reMatch.Groups[1].Value;
+                        victim = reMatch.Groups[2].Value;
+                        damage = reMatch.Groups[3].Value;
+                        special = reMatch.Groups[4].Value;
+                        crit = special;
+                        if (petSplit.IsMatch(attacker)) {
+                            skillType = petSplit.Replace(attacker, "$2") + "の攻撃";
+                            attacker = petSplit.Replace(attacker, "$1");
+                        }
+                        else skillType = "攻撃";
+                    }
+                    else if (logMatched == 4) {
                         victim = reMatch.Groups[1].Value;
                         attacker = reMatch.Groups[2].Value;
                         skillType = reMatch.Groups[3].Value;
@@ -566,7 +581,7 @@ namespace ACT_Plugin
                         special = reMatch.Groups[5].Value;
                         crit = special;
                     }
-                    else if (logMatched == 4) {
+                    else if (logMatched == 5) {
                         attacker = reMatch.Groups[1].Value;
                         skillType = reMatch.Groups[2].Value;
                         victim = reMatch.Groups[3].Value;
@@ -614,7 +629,7 @@ namespace ACT_Plugin
                     break;
                 #endregion
                 #region Case 3 [healing]
-                case 6:
+                case 7:
                     if (!ActGlobals.oFormActMain.InCombat)
                         break;
                     attacker = reMatch.Groups[1].Value;
@@ -639,22 +654,21 @@ namespace ACT_Plugin
                     break;
                 #endregion
                 #region Case 4 [misses]
-                case 7:
                 case 8:
                 case 9:
-            string damageType = "";
-                    if (logMatched == 7) {
+                case 10:
+                    string damageType = "";
+                    if (logMatched == 8) {
                         attacker = reMatch.Groups[1].Value;
                         victim = reMatch.Groups[2].Value;
                         why = reMatch.Groups[3].Value;
                         special = reMatch.Groups[4].Value;
-                        if ((why == "攻撃") && (!petSplit.IsMatch(attacker)))
+                        if (((why == "攻撃" || why == "ヒット")) && (!petSplit.IsMatch(attacker)))
                         {
-                            swingType = SwingTypeEnum.Melee;
-                            skillType = why.Trim();
+                            skillType = "攻撃";
+                            why = "";
                         }
                         else { // skill miss
-                            swingType = SwingTypeEnum.NonMelee;
                             skillType = (Regex.Split( why , "で攻撃" ))[0].Trim();
                             if (petSplit.IsMatch(attacker))
                             {
@@ -663,25 +677,23 @@ namespace ACT_Plugin
                             }
                         }
                     }
-                    else if (logMatched == 8) {
+                    else if (logMatched == 9) {
                         attacker = reMatch.Groups[1].Value;
                         victim = reMatch.Groups[2].Value;
                         why = reMatch.Groups[3].Value;
                         special = reMatch.Groups[4].Value;
-                        crit = special;
                         skillType = "攻撃";
                     }
                     else {
                         attacker = reMatch.Groups[1].Value;
                         victim = reMatch.Groups[2].Value;
                         skillType = reMatch.Groups[3].Value;
-                        why = special = reMatch.Groups[4].Value;
+                        why = reMatch.Groups[4].Value;
                         special = reMatch.Groups[5].Value;
-                        crit = special;
                     }
 
                     attacker = JapanesePersonaReplace(attacker);
-                    victim = JapanesePersonaReplace(attacker);
+                    victim = JapanesePersonaReplace(victim);
 
                     if (skillType == "攻撃") {
                         damageType = "melee";
@@ -701,24 +713,25 @@ namespace ACT_Plugin
                         why = why.Trim() + " " + special;
                         failType = new Dnum(Dnum.Unknown, why.Trim());
                     }
-                    special = "None";
+
+                    special = String.IsNullOrEmpty(special) ? "None" : special;
 
                     if (attacker == victim || attacker == petSplit.Replace(victim, "$2"))
                         break;        // You don't get credit for attacking yourself or your own pet
 
                     if (ActGlobals.oFormActMain.SetEncounter(time, attacker, victim))
-                        AddCombatActionTrans((int)SwingTypeEnum.NonMelee, false, special, attacker, skillType, failType, time, gts, victim, damageType);
+                        AddCombatActionTrans((int)swingType, false, special, attacker, skillType, failType, time, gts, victim, damageType);
                     break;
                 #endregion
                 #region Case 5 [killing]
-                case 10:
                 case 11:
                 case 12:
-                    if (logMatched == 10) {
+                case 13:
+                    if (logMatched == 11) {
                         attacker = "あなた";
                         victim = reMatch.Groups[1].Value;
                     }
-                    else if (logMatched == 11) {
+                    else if (logMatched == 12) {
                         victim = reMatch.Groups[1].Value;
                         attacker = reMatch.Groups[2].Value;
                     }
@@ -746,14 +759,14 @@ namespace ACT_Plugin
                     break;
                 #endregion
                 #region Case 6 [act commands]
-                case 13:
+                case 14:
                     ActGlobals.oFormActMain.ActCommands(rE.Replace(logLine, "$1"));
                     break;
                 #endregion
                 #region Case 7 [power drain]
-                case 14:
                 case 15:
-                    if (logMatched == 14) {
+                case 16:
+                    if (logMatched == 15) {
                         attacker = reMatch.Groups[1].Value;
                         skillType = reMatch.Groups[2].Value;
                         victim = reMatch.Groups[3].Value;
@@ -792,11 +805,11 @@ namespace ACT_Plugin
                     break;
                 #endregion
                 #region Case 8 [ward absorbtion]
-                case 16:
                 case 17:
+                case 18:
                     if (!ActGlobals.oFormActMain.InCombat)
                         break;
-                    if (logMatched == 16) {
+                    if (logMatched == 17) {
                         victim = reMatch.Groups[1].Value;
                         damage = reMatch.Groups[2].Value;
                         attacker = reMatch.Groups[3].Value;
@@ -823,14 +836,14 @@ namespace ACT_Plugin
                     break;
                 #endregion
                 #region Case 9 [zone change]
-                case 18:
+                case 19:
                     if (logLine.Contains(" combat by "))
                         break;
                     ActGlobals.oFormActMain.ChangeZone(rE.Replace(logLine, "$1").Trim());
                     break;
                 #endregion
                 #region Case 10 [power healing]
-                case 19:
+                case 20:
                     if (!ActGlobals.oFormActMain.InCombat)
                         break;
                     attacker = reMatch.Groups[1].Value;
@@ -851,7 +864,7 @@ namespace ACT_Plugin
                     break;
                 #endregion
                 #region Case 11 [threat]
-                case 20:
+                case 21:
                     attacker = reMatch.Groups[1].Value;
                     skillType = reMatch.Groups[2].Value;
                     victim = reMatch.Groups[3].Value;
@@ -871,8 +884,7 @@ namespace ACT_Plugin
 
                     bool increase = (direction == "増加");
                     bool positionChange = (position == "position");
-                    if (special.Trim() == "")
-                        special = "None";
+                    special = String.IsNullOrEmpty(special) ? "None" : special;
 
                     Dnum dDamage;
                     if (positionChange)
@@ -888,7 +900,7 @@ namespace ACT_Plugin
                     break;
                 #endregion
                 #region Case 12 [dispell/cure]
-                case 21:
+                case 22:
                     attacker = reMatch.Groups[1].Value;
                     skillType = reMatch.Groups[2].Value;
                     victim = reMatch.Groups[3].Value;
@@ -911,7 +923,7 @@ namespace ACT_Plugin
                     break;
                 #endregion
                 #region Case 13 [damage interception]
-                case 22:
+                case 23:
                     if (!ActGlobals.oFormActMain.InCombat)
                         break;
                     attacker = reMatch.Groups[1].Value;    // Inteceptor
@@ -1007,7 +1019,7 @@ namespace ACT_Plugin
             else
             {
                 bool nullSkillType = String.IsNullOrEmpty(skillType);
-                
+
                 for (int i = 0; i < damageAndTypeArr.Count; i++)
                 {
                     damageTotal = damageAndTypeArr[i].Damage;
@@ -1084,9 +1096,8 @@ namespace ACT_Plugin
 
             if (!Critical)
                 critStr = "None";
-            
-            if(Special.Trim() == "")
-                Special = "None";
+
+            Special = String.IsNullOrEmpty(Special) ? "None" : Special;
 
             if (romanjiSplit.IsMatch(theDamageType))
                 theDamageType = translateForMultiple(theDamageType);
@@ -1111,7 +1122,7 @@ namespace ACT_Plugin
         private string translateForMultiple(string transTarget)
         {
             string returnValue = string.Empty;
-            
+
             transTarget = transTarget.Replace("\\ri:","");
             transTarget = transTarget.Replace("\\ra:","");
             transTarget = transTarget.Replace("\\rp:","");
@@ -1121,12 +1132,12 @@ namespace ACT_Plugin
             transTarget = transTarget.Replace("\\::",":");
             transTarget = transTarget.Replace("\\:",":");
             transTarget = transTarget.Replace("\\/r",":");
-            
+
             string[] arrTarget = transTarget.Split(':');
-            
+
             StringBuilder jpn = new StringBuilder();
             StringBuilder eng = new StringBuilder();
-            
+
             if(arrTarget.Length>1){
                 for(int i=0;i<arrTarget.Length;i++){
                     if(i%2==0){
@@ -1135,7 +1146,7 @@ namespace ACT_Plugin
                         eng.Append(arrTarget[i]);
                     }
                 }
-                
+
                 if (cbKatakana.Checked){
                     returnValue = jpn.ToString();
                 }else{
@@ -1144,7 +1155,7 @@ namespace ACT_Plugin
             }else{
                 returnValue = transTarget;
             }
-            
+
             return returnValue;
         }
 
@@ -1157,6 +1168,7 @@ namespace ACT_Plugin
             return input;
         }
 
+        Regex typeDamageSplit = new Regex(@"(?<type>.+)ダメージを(?<damage>\d+)", RegexOptions.Compiled);
         private List<DamageAndType> JpnGetDamageAndTypeArr(string damageAndType)
         {
             List<DamageAndType> outList = new List<DamageAndType>();
@@ -1166,6 +1178,8 @@ namespace ACT_Plugin
 
             for (int i = 0; i < entries.Length; i++)
             {
+                if (typeDamageSplit.IsMatch(entries[i]))
+                	entries[i] = typeDamageSplit.Replace(entries[i], "$2") + " " + typeDamageSplit.Replace(entries[i], "$1");
                 outList.Add(new DamageAndType(entries[i]));
             }
             return outList;
@@ -1209,6 +1223,7 @@ namespace ACT_Plugin
             }
         }
         #endregion
+
         void LoadSettings()
         {
             // Add items to the xmlSettings object here...
