@@ -17,16 +17,11 @@ using System.Globalization;
 [assembly: AssemblyTitle("Japanese(JPN) Parsing Engine")]
 [assembly: AssemblyDescription("Plugin based parsing engine for Japanese EQ2 servers running the Japanese client")]
 [assembly: AssemblyCompany("Mayia of Sebilis")]
-[assembly: AssemblyVersion("1.1.0.4")]
+[assembly: AssemblyVersion("1.2.0.1")]
 
-// NOTE: このpluginは、ACT公式のEn-Jp_ParserのVer.1.1.1.9を元に、日本語環境のままで使用できるように改造したものです。ほぼ全ての機能を取り込んでいると思います。
+// NOTE: このpluginは、ACT公式のEn-Jp_ParserのVer.1.2.0.10を元に、日本語環境のままで使用できるように改造したものです。ほぼ全ての機能を取り込んでいると思います。
 // NOTE: 解析者向け（＝自分用）に「pluginで解析できなかったログをファイルに出力する」隠し機能を搭載しております。ファイルの１行目の // を外すと利用可能。
 // NOTE: Obanburumai様のご協力により、EQ2側のバグによりアーツ名の直後で改行されていて取り込めなかったアーツ（ラッキー・ギャンビット、ワイルド・アクリーション、他にもあるかも？）を取得できるようにしております。（2015/01現在、JPNプラグイン固有の機能です）
-// NOTE: 【不具合修正】「マーセナリー・スタンド」が、アーツではなくキャラクターとしてカウントされてしまう現象を修正しました。
-////////////////////////////////////////////////////////////////////////////////
-// $Date: 2015-10-16 15:27:42 +0900 (2015/10/16 (金)) $
-// $Rev: 31 $
-////////////////////////////////////////////////////////////////////////////////
 namespace ACT_Plugin
 {
     public class ACT_Jpn_Parser : UserControl, IActPluginV1
@@ -306,10 +301,10 @@ namespace ACT_Plugin
         Regex[] regexArray;
         const string logTimeStampRegexStr = @"\(\d{10}\)\[.{24}\] ";
         DateTime lastWardTime = DateTime.MinValue;
-        int lastWardAmount = 0;
+        long lastWardAmount = 0;
         string lastWardedTarget = string.Empty;
         DateTime lastInterceptTime = DateTime.MinValue;
-        int lastInterceptAmount = 0;
+        long lastInterceptAmount = 0;
         string lastInterceptTarget = string.Empty;
         string lastIntercepter = string.Empty;
         Regex petSplit = new Regex(@"(?<attacker>\w+)(?:'s|の) ?(?<petName>.+)", RegexOptions.Compiled);
@@ -343,7 +338,6 @@ namespace ACT_Plugin
             regexArray[10] = new Regex(logTimeStampRegexStr + @"(?<victim>.+?)を ?倒した。", RegexOptions.Compiled);
             regexArray[11] = new Regex(logTimeStampRegexStr + @"(?<victim>.+?)?が ?(?<attacker>.+?)(?:(?:の|'s).+?)?に殺された……。", RegexOptions.Compiled);
             regexArray[12] = new Regex(logTimeStampRegexStr + @"(?<attacker>.+?)(?:(?:の|'s).+?)?に殺された……。", RegexOptions.Compiled);
-            //regexArray[13] = new Regex(logTimeStampRegexStr + @"Unknown command: 'act (.+)'", RegexOptions.Compiled);
             regexArray[13] = new Regex(logTimeStampRegexStr + @"不明コマンド： 'act (.+)'", RegexOptions.Compiled);
             regexArray[14] = new Regex(logTimeStampRegexStr + @"(?<victim>.+?)は ?(?<attacker>[^\\].+?)の(?<skill>.+?) ?で攻撃を受け、ポイントパワーを(?<damage>\d+)(?:ポイント)?消耗し(?:た|ました)。(?:[（(](?<special>.+?)[）)])?", RegexOptions.Compiled);
             regexArray[15] = new Regex(logTimeStampRegexStr + @"(?:(?<attacker>[^\\].+?)(?:が|の)(?:放った)? ?)?(?:(?<skill>.+?) ?(?:で ?|が ?|により))?(?<victim>.+?)?(?:を ?攻撃し|に ?命中し|に ?ヒットし|攻撃を受け)、(?:ポイントパワーを)?(?<damage>\d+)ポイント(?:のポイント)?(?:パワーを)?消耗(?:させ|し)(?:た|ました)。?(?:[（(](?<special>.+?)[）)])?", RegexOptions.Compiled);
@@ -497,9 +491,9 @@ namespace ACT_Plugin
         string[] matchKeywords = new string[] { "ダメージ", "ヒットポイント", "マナポイント", "はずした", "失敗しました", "妨害した", "妨げられました", "かわしました", "倒した", "殺された", "不明コマンド： 'act", "entered", "消耗", "ヘイト", "ディスペル", "治療" };
         private bool NotQuickFail(LogLineEventArgs logInfo)
         {
-            foreach (string s in matchKeywords)
+			for (int i = 0; i < matchKeywords.Length; i++)
             {
-                if (logInfo.logLine.Contains(s))
+				if (logInfo.logLine.Contains(matchKeywords[i]))
                     return true;
             }
 
@@ -625,11 +619,9 @@ namespace ACT_Plugin
                     {
                         AddDamageAttack(attacker, victim, skillType, (int)swingType, critical, special, damageAndTypeArr, time, gts);
                     }
-                    //NotifySpell(attacker, skillType, true, victim, true);
-
                     break;
                 #endregion
-                #region Case 3 [healing]
+                #region Case 7 [healing]
                 case 7:
                     if (!ActGlobals.oFormActMain.InCombat)
                         break;
@@ -651,10 +643,10 @@ namespace ACT_Plugin
                     if (attacker == "あなた")        // You healing
                         attacker = ActGlobals.charName;
 
-                    AddCombatActionTrans((int)SwingTypeEnum.Healing, critical, special, attacker, skillType, new Dnum(Int32.Parse(damage)), time, gts, victim, "Hitpoints");
+                    AddCombatActionTrans((int)SwingTypeEnum.Healing, critical, special, attacker, skillType, new Dnum(Int64.Parse(damage)), time, gts, victim, "Hitpoints");
                     break;
                 #endregion
-                #region Case 4 [misses]
+                #region Case 8 [misses]
                 case 8:
                 case 9:
                 case 10:
@@ -724,7 +716,7 @@ namespace ACT_Plugin
                         AddCombatActionTrans((int)swingType, false, special, attacker, skillType, failType, time, gts, victim, damageType);
                     break;
                 #endregion
-                #region Case 5 [killing]
+                #region Case 11 [killing]
                 case 11:
                 case 12:
                 case 13:
@@ -759,12 +751,12 @@ namespace ACT_Plugin
                     }
                     break;
                 #endregion
-                #region Case 6 [act commands]
+                #region Case 14 [act commands]
                 case 14:
                     ActGlobals.oFormActMain.ActCommands(rE.Replace(logLine, "$1"));
                     break;
                 #endregion
-                #region Case 7 [power drain]
+                #region Case 15 [power drain]
                 case 15:
                 case 16:
                     if (logMatched == 15) {
@@ -796,16 +788,16 @@ namespace ACT_Plugin
                     {
                         if (CheckWardedHit(victim, time))
                         {
-                            Dnum complexWardedHit = new Dnum(Int32.Parse(damage) + lastWardAmount, String.Format("{0}/{1}", lastWardAmount, damage));
+                            Dnum complexWardedHit = new Dnum(Int64.Parse(damage) + lastWardAmount, String.Format("{0}/{1}", lastWardAmount, damage));
                             AddCombatActionTrans((int)SwingTypeEnum.PowerDrain, false, "None", attacker, skillType, complexWardedHit, time, gts, victim, "warded/non-melee");
                             lastWardAmount = 0;
                         }
                         else
-                            AddCombatActionTrans((int)SwingTypeEnum.PowerDrain, false, "None", attacker, skillType, new Dnum(Int32.Parse(damage)), time, gts, victim, "non-melee");
+                            AddCombatActionTrans((int)SwingTypeEnum.PowerDrain, false, "None", attacker, skillType, new Dnum(Int64.Parse(damage)), time, gts, victim, "non-melee");
                     }
                     break;
                 #endregion
-                #region Case 8 [ward absorbtion]
+                #region Case 17 [ward absorbtion]
                 case 17:
                 case 18:
                     if (!ActGlobals.oFormActMain.InCombat)
@@ -826,24 +818,24 @@ namespace ACT_Plugin
                     attacker = JapanesePersonaReplace(attacker);
                     victim = JapanesePersonaReplace(victim);
 
-                    AddCombatActionTrans((int)SwingTypeEnum.Healing, false, "None", attacker, skillType, new Dnum(Int32.Parse(damage)), time, gts, victim, "Absorption");
+                    AddCombatActionTrans((int)SwingTypeEnum.Healing, false, "None", attacker, skillType, new Dnum(Int64.Parse(damage)), time, gts, victim, "Absorption");
 
                     if (CheckWardedHit(victim, time))
-                        lastWardAmount += Int32.Parse(damage);
+                        lastWardAmount += Int64.Parse(damage);
                     else
-                        lastWardAmount = Int32.Parse(damage);
+                        lastWardAmount = Int64.Parse(damage);
                     lastWardedTarget = victim;
                     lastWardTime = time;
                     break;
                 #endregion
-                #region Case 9 [zone change]
+                #region Case 19 [zone change]
                 case 19:
                     if (logLine.Contains(" combat by "))
                         break;
                     ActGlobals.oFormActMain.ChangeZone(rE.Replace(logLine, "$1").Trim());
                     break;
                 #endregion
-                #region Case 10 [power healing]
+                #region Case 20 [power healing]
                 case 20:
                     if (!ActGlobals.oFormActMain.InCombat)
                         break;
@@ -861,10 +853,10 @@ namespace ACT_Plugin
                     victim = JapanesePersonaReplace(victim);
                     if (attacker.StartsWith("あなた"))        // You healing
                         attacker = ActGlobals.charName;
-                    AddCombatActionTrans((int)SwingTypeEnum.PowerHealing, critical, "None", attacker, skillType, new Dnum(Int32.Parse(damage)), time, gts, victim, "Power");
+                    AddCombatActionTrans((int)SwingTypeEnum.PowerHealing, critical, "None", attacker, skillType, new Dnum(Int64.Parse(damage)), time, gts, victim, "Power");
                     break;
                 #endregion
-                #region Case 11 [threat]
+                #region Case 21 [threat]
                 case 21:
                     attacker = reMatch.Groups[1].Value;
                     skillType = reMatch.Groups[2].Value;
@@ -889,9 +881,9 @@ namespace ACT_Plugin
 
                     Dnum dDamage;
                     if (positionChange)
-                        dDamage = new Dnum(Dnum.ThreatPosition, String.Format("{0} Positions", Int32.Parse(damage)));
+                        dDamage = new Dnum(Dnum.ThreatPosition, String.Format("{0} Positions", Int64.Parse(damage)));
                     else
-                        dDamage = new Dnum(Int32.Parse(damage));
+                        dDamage = new Dnum(Int64.Parse(damage));
                     direction = increase ? "Increase" : "Decrease";
 
                     if (attacker == victim || attacker == petSplit.Replace(victim, "$2"))
@@ -900,7 +892,7 @@ namespace ACT_Plugin
                         AddCombatActionTrans((int)SwingTypeEnum.Threat, critical, special, attacker, skillType, dDamage, time, gts, victim, direction);
                     break;
                 #endregion
-                #region Case 12 [dispell/cure]
+                #region Case 22 [dispell/cure]
                 case 22:
                     attacker = reMatch.Groups[1].Value;
                     skillType = reMatch.Groups[2].Value;
@@ -935,11 +927,11 @@ namespace ACT_Plugin
                     attacker = JapanesePersonaReplace(attacker);
                     victim = JapanesePersonaReplace(victim);
 
-                    AddCombatActionTrans((int)SwingTypeEnum.Healing, false, special, attacker, "Channeler Pet", new Dnum(Int32.Parse(damage)), time, gts, victim, "Interception");
+                    AddCombatActionTrans((int)SwingTypeEnum.Healing, false, special, attacker, "Channeler Pet", new Dnum(Int64.Parse(damage)), time, gts, victim, "Interception");
                     if (CheckInterceptedHit(victim, time))
-                        lastInterceptAmount += Int32.Parse(damage);
+                        lastInterceptAmount += Int64.Parse(damage);
                     else
-                        lastInterceptAmount = Int32.Parse(damage);
+                        lastInterceptAmount = Int64.Parse(damage);
                     lastInterceptTarget = victim;
                     lastInterceptTime = time;
                     lastIntercepter = attacker;
@@ -980,7 +972,7 @@ namespace ACT_Plugin
         }
         private void AddDamageAttack(string attacker, string victim, string skillType, int swingType, bool critical, string special, List<DamageAndType> damageAndTypeArr, DateTime time, int gts)
         {
-            int damageTotal = 0;
+            long damageTotal = 0;
             if (cbMultiDamageIsOne.Checked)
             {
                 string damageStr = string.Empty;
@@ -993,21 +985,21 @@ namespace ACT_Plugin
                 if (CheckInterceptedHit(victim, time))
                 {
                     damageTotal = lastInterceptAmount;
-                    damageStr += String.Format("{0}/", damageTotal);
+					damageStr += String.Format("{0}/", damageTotal.ToString(GetIntCommas()));
                     typeStr += String.Format("{0}/", "intercepted");
                     lastInterceptAmount = 0;
                 }
                 if (CheckWardedHit(victim, time))
                 {
                     damageTotal = lastWardAmount;
-                    damageStr += String.Format("{0}/", damageTotal);
+					damageStr += String.Format("{0}/", damageTotal.ToString(GetIntCommas()));
                     typeStr += String.Format("{0}/", "warded");
                     lastWardAmount = 0;
                 }
                 for (int i = 0; i < damageAndTypeArr.Count; i++)
                 {
                     damageTotal += damageAndTypeArr[i].Damage;
-                    damageStr += String.Format("{0}/", damageAndTypeArr[i].Damage);
+					damageStr += String.Format("{0}/", damageAndTypeArr[i].Damage.ToString(GetIntCommas()));
                     typeStr += String.Format("{0}/", damageAndTypeArr[i].Type);
                 }
                 damageStr = damageStr.TrimEnd(new char[] { '/' });
@@ -1024,7 +1016,7 @@ namespace ACT_Plugin
                 for (int i = 0; i < damageAndTypeArr.Count; i++)
                 {
                     damageTotal = damageAndTypeArr[i].Damage;
-                    string damageStr = damageAndTypeArr[i].Damage.ToString();
+					string damageStr = damageAndTypeArr[i].Damage.ToString(GetIntCommas());
                     if (nullSkillType)
                         skillType = damageAndTypeArr[i].Type;
 
@@ -1188,14 +1180,14 @@ namespace ACT_Plugin
 
         private class DamageAndType
         {
-            int damage;
+            long damage;
             string type;
             /// <summary>
             /// Data class for a single type of damage and the amount
             /// </summary>
             /// <param name="Damage">The positive integer amount of damage</param>
             /// <param name="Type">The type of damage to display it as</param>
-            public DamageAndType(int Damage, string Type)
+            public DamageAndType(long Damage, string Type)
             {
                 this.damage = Damage;
                 this.type = Type;
@@ -1209,10 +1201,10 @@ namespace ACT_Plugin
                 int spacePos = UnsplitSource.IndexOf(' ');
                 if (spacePos == -1)
                     throw new ArgumentException("The input string did not contain a space, thus cannot be split");
-                damage = Int32.Parse(UnsplitSource.Substring(0, spacePos));
+                damage = Int64.Parse(UnsplitSource.Substring(0, spacePos));
                 type = UnsplitSource.Substring(spacePos + 1);
             }
-            public int Damage
+            public long Damage
             {
                 get { return damage; }
                 set { damage = value; }
@@ -1224,7 +1216,6 @@ namespace ACT_Plugin
             }
         }
         #endregion
-
         void LoadSettings()
         {
             // Add items to the xmlSettings object here...
