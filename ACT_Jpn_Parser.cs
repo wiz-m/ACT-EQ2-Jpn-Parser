@@ -17,15 +17,16 @@ using System.Threading;
 [assembly: AssemblyTitle("Japanese Parsing Engine")]
 [assembly: AssemblyDescription("Plugin based parsing Japanese EQ2 Sebilis server running the Japanese client")]
 [assembly: AssemblyCompany("Gardin of Sebillis and Tzalik of Sebillis and Mayia of Sebilis")]
-[assembly: AssemblyVersion("1.0.2.8")]
+[assembly: AssemblyVersion("1.0.2.9")]
 
 // NOTE: このpluginは、Tzalik様が公開していたpluginを元に改造したものです。（元バージョン配布サイト様：https://sites.google.com/site/eq2actjpn/home）
 // NOTE: 解析者向け（＝自分用）に「pluginで解析できなかったログをファイルに出力する」隠し機能を搭載しております。ファイルの１行目の // を外すと利用可能。
 // NOTE: レジェンダリ以上のクリティカルは、表示のみ対応しています。（"special"欄に表示されます）
 // NOTE: チャネラーのログがうまく取り込めていなかった問題に対応いたしました。（まだあるかも・・・）
+// NOTE: Obanburumai様のご協力により、EQ2側のバグによりアーツ名の直後で改行されていて取り込めなかったアーツ（ラッキー・ギャンビット、ワイルド・アクリーション、他にもあるかも？）を取得できるようになりました。
 ////////////////////////////////////////////////////////////////////////////////
-// $Date: 2014-12-30 21:55:20 +0900 (2014/12/30 (火)) $
-// $Rev: 20 $
+// $Date: 2015-01-25 18:20:48 +0900 (2015/01/25 (日)) $
+// $Rev: 21 $
 ////////////////////////////////////////////////////////////////////////////////
 namespace ACT_Plugin
 {
@@ -295,7 +296,14 @@ namespace ACT_Plugin
         Regex regexConsider = new Regex(logTimeStampRegexStr + @".+?You consider (?<player>.+?)\.\.\. .+", RegexOptions.Compiled);
         Regex regexWhogroup = new Regex(logTimeStampRegexStr + @"(?<name>[^ ]+) Lvl \d+ .+", RegexOptions.Compiled);
         Regex regexWhoraid = new Regex(logTimeStampRegexStr + @"\[\d+ [^\]]+\] (?<name>[^ ]+) \([^\)]+\)", RegexOptions.Compiled);
+        Regex regexLogTimeStamp = new Regex(logTimeStampRegexStr, RegexOptions.Compiled);
         CombatActionEventArgs lastDamage = null;
+
+        // -- Special Thanks Obanburumai  Start --
+        Regex regexSkillEol = new Regex(logTimeStampRegexStr + @"..*\\/r ?(?=\r?\n|$)", RegexOptions.Compiled);
+        string skillEolLogline = string.Empty;
+        bool isSkillEol = false;
+        // -- Special Thanks Obanburumai  End --
 
         private void PopulateRegexArray()
         {
@@ -325,54 +333,76 @@ namespace ACT_Plugin
             regexArray[20] = new Regex(logTimeStampRegexStr + @"(?<attacker>.+?|あなた)(?:の|'s) ?(?<skillType>.+?)が ?(?:(?<victim>.+?|あなた))の(?<affliction>.+?)を(?<action>ディスペル|治療)しました。", RegexOptions.Compiled);
             regexArray[21] = new Regex(logTimeStampRegexStr + @"(?<healer>.+?)[はが] ?(?<attacker>.+?)から(?<victim>.+?)へのダメージを ?(?<damage>\d+) ?減らし(?:まし)?た。", RegexOptions.Compiled);
         }
+
         void oFormActMain_BeforeLogLineRead(bool isImport, LogLineEventArgs logInfo)
         {
             #if DEBUG_FILE_OUTPUT
-            bool chkFlg = false;
+            bool isMatchLog = false;
             #endif
-            for (int i = 0; i < regexArray.Length; i++)
+
+            // -- Special Thanks Obanburumai  Start --
+            if (this.isSkillEol)
             {
-                if (regexArray[i].IsMatch(logInfo.logLine))
+                if (!regexLogTimeStamp.IsMatch(logInfo.logLine))
+                    logInfo.logLine = this.skillEolLogline + logInfo.logLine;
+
+                this.skillEolLogline = string.Empty;
+                this.isSkillEol = false;
+            }
+
+            if (regexSkillEol.IsMatch(logInfo.logLine))
+            {
+                this.isSkillEol = true;
+                this.skillEolLogline = logInfo.logLine;
+                this.skillEolLogline = this.skillEolLogline.Replace("\r", "").Replace("\n", "");
+            }
+            // -- Special Thanks Obanburumai  End --
+            else
+            {
+                for (int i = 0; i < regexArray.Length; i++)
                 {
-                    #if DEBUG_FILE_OUTPUT
-                    chkFlg = true;
-                    #endif
-                    switch (i)
+                    if (regexArray[i].IsMatch(logInfo.logLine))
                     {
-                        case 0:
-                        case 1:
-                        case 2:
-                        case 3:
-                        case 4:
-                            logInfo.detectedType = Color.Red.ToArgb();
-                            break;
-                        case 5:
-                            logInfo.detectedType = Color.Blue.ToArgb();
-                            break;
-                        case 6:
-                        case 7:
-                        case 8:
-                            logInfo.detectedType = Color.DarkRed.ToArgb();
-                            break;
-                        case 13:
-                            logInfo.detectedType = Color.DarkOrchid.ToArgb();
-                            break;
-                        case 14:
-                        case 15:
-                        case 16:
-                            logInfo.detectedType = Color.DodgerBlue.ToArgb();
-                            break;
-                        default:
-                            logInfo.detectedType = Color.Black.ToArgb();
-                            break;
+                        #if DEBUG_FILE_OUTPUT
+                        isMatchLog = true;
+                        #endif
+                        switch (i)
+                        {
+                            case 0:
+                            case 1:
+                            case 2:
+                            case 3:
+                            case 4:
+                                logInfo.detectedType = Color.Red.ToArgb();
+                                break;
+                            case 5:
+                                logInfo.detectedType = Color.Blue.ToArgb();
+                                break;
+                            case 6:
+                            case 7:
+                            case 8:
+                                logInfo.detectedType = Color.DarkRed.ToArgb();
+                                break;
+                            case 13:
+                                logInfo.detectedType = Color.DarkOrchid.ToArgb();
+                                break;
+                            case 14:
+                            case 15:
+                            case 16:
+                                logInfo.detectedType = Color.DodgerBlue.ToArgb();
+                                break;
+                            default:
+                                logInfo.detectedType = Color.Black.ToArgb();
+                                break;
+                        }
+                        LogExeJpn(i + 1, logInfo.logLine, isImport);
+                        break;
                     }
-                    LogExeJpn(i + 1, logInfo.logLine, isImport);
-                    break;
                 }
             }
 
             #if DEBUG_FILE_OUTPUT
-            if (!chkFlg && this.cbDebugLog.Checked)
+            if (!isMatchLog && this.cbDebugLog.Checked)
             {
                 string filename = @"D:\ACTJpnParser_debug.txt";
                 if (this.tbDebugFileName.Text.Length > 0) filename = this.tbDebugFileName.Text;
