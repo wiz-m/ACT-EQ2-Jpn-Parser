@@ -1,5 +1,4 @@
-//#define DEBUG_FILE_OUTPUT
-
+﻿//#define DEBUG_FILE_OUTPUT
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -13,20 +12,19 @@ using System.Reflection;
 using System.Xml;
 using System.Text.RegularExpressions;
 using System.Threading;
+using System.Globalization;
 
-[assembly: AssemblyTitle("Japanese Parsing Engine")]
-[assembly: AssemblyDescription("Plugin based parsing Japanese EQ2 Sebilis server running the Japanese client")]
-[assembly: AssemblyCompany("Gardin of Sebillis and Tzalik of Sebillis and Mayia of Sebilis")]
-[assembly: AssemblyVersion("1.0.2.9")]
+[assembly: AssemblyTitle("Japanese(JPN) Parsing Engine")]
+[assembly: AssemblyDescription("Plugin based parsing engine for Japanese EQ2 servers running the Japanese client")]
+[assembly: AssemblyCompany("Mayia of Sebilis")]
+[assembly: AssemblyVersion("1.1.0.1")]
 
-// NOTE: このpluginは、Tzalik様が公開していたpluginを元に改造したものです。（元バージョン配布サイト様：https://sites.google.com/site/eq2actjpn/home）
+// NOTE: このpluginは、ACT公式のEn-Jp_ParserのVer.1.1.1.9を元に、日本語環境のままで使用できるように改造したものです。ほぼ全ての機能を取り込んでいると思います。
 // NOTE: 解析者向け（＝自分用）に「pluginで解析できなかったログをファイルに出力する」隠し機能を搭載しております。ファイルの１行目の // を外すと利用可能。
-// NOTE: レジェンダリ以上のクリティカルは、表示のみ対応しています。（"special"欄に表示されます）
-// NOTE: チャネラーのログがうまく取り込めていなかった問題に対応いたしました。（まだあるかも・・・）
-// NOTE: Obanburumai様のご協力により、EQ2側のバグによりアーツ名の直後で改行されていて取り込めなかったアーツ（ラッキー・ギャンビット、ワイルド・アクリーション、他にもあるかも？）を取得できるようになりました。
+// NOTE: Obanburumai様のご協力により、EQ2側のバグによりアーツ名の直後で改行されていて取り込めなかったアーツ（ラッキー・ギャンビット、ワイルド・アクリーション、他にもあるかも？）を取得できるようにしております。（2015/01現在、JPNプラグイン固有の機能です）
 ////////////////////////////////////////////////////////////////////////////////
-// $Date: 2015-01-25 18:20:48 +0900 (2015/01/25 (日)) $
-// $Rev: 21 $
+// $Date: 2015-01-31 21:36:27 +0900 (2015/01/31 (土)) $
+// $Rev: 25 $
 ////////////////////////////////////////////////////////////////////////////////
 namespace ACT_Plugin
 {
@@ -63,6 +61,7 @@ namespace ACT_Plugin
             this.cbRecalcWardedHits = new System.Windows.Forms.CheckBox();
             this.cbKatakana = new System.Windows.Forms.CheckBox();
             this.cbSParseConsider = new System.Windows.Forms.CheckBox();
+            this.cbIncludeInterceptFocus = new System.Windows.Forms.CheckBox();
             #if DEBUG_FILE_OUTPUT
             this.cbDebugLog = new System.Windows.Forms.CheckBox();
             this.tbDebugFileName = new System.Windows.Forms.TextBox();
@@ -75,12 +74,12 @@ namespace ACT_Plugin
             this.cbMultiDamageIsOne.AutoSize = true;
             this.cbMultiDamageIsOne.Checked = true;
             this.cbMultiDamageIsOne.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.cbMultiDamageIsOne.Location = new System.Drawing.Point(13, 13);
+            this.cbMultiDamageIsOne.Location = new System.Drawing.Point(13, 14);
             this.cbMultiDamageIsOne.Margin = new System.Windows.Forms.Padding(3, 1, 3, 1);
             this.cbMultiDamageIsOne.Name = "cbMultiDamageIsOne";
-            this.cbMultiDamageIsOne.Size = new System.Drawing.Size(509, 16);
+            this.cbMultiDamageIsOne.Size = new System.Drawing.Size(362, 17);
             this.cbMultiDamageIsOne.TabIndex = 5;
-            this.cbMultiDamageIsOne.Text = "（※未対応です）複数属性ダメージを1回攻撃として記録する。(既に読み込んだデータには反映しません)";
+            this.cbMultiDamageIsOne.Text = "複数属性ダメージを1回攻撃として記録します。(既に読み込んだデータには反映しません)";
             this.cbMultiDamageIsOne.MouseHover += new System.EventHandler(this.cbMultiDamageIsOne_MouseHover);
             // 
             // cbRecalcWardedHits
@@ -88,12 +87,12 @@ namespace ACT_Plugin
             this.cbRecalcWardedHits.AutoSize = true;
             this.cbRecalcWardedHits.Checked = true;
             this.cbRecalcWardedHits.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.cbRecalcWardedHits.Location = new System.Drawing.Point(13, 48);
+            this.cbRecalcWardedHits.Location = new System.Drawing.Point(13, 52);
             this.cbRecalcWardedHits.Margin = new System.Windows.Forms.Padding(3, 1, 3, 1);
             this.cbRecalcWardedHits.Name = "cbRecalcWardedHits";
-            this.cbRecalcWardedHits.Size = new System.Drawing.Size(426, 16);
+            this.cbRecalcWardedHits.Size = new System.Drawing.Size(368, 17);
             this.cbRecalcWardedHits.TabIndex = 7;
-            this.cbRecalcWardedHits.Text = "Ward で受けた値を本来の値で再計算する。(既に読み込んだデータには反映しません)";
+            this.cbRecalcWardedHits.Text = "Ward で受けた値を本来の値で再計算します。(既に読み込んだデータには反映しません)";
             this.cbRecalcWardedHits.MouseHover += new System.EventHandler(this.cbRecalcWardedHits_MouseHover);
             // 
             // cbKatakana
@@ -101,12 +100,12 @@ namespace ACT_Plugin
             this.cbKatakana.AutoSize = true;
             this.cbKatakana.Checked = true;
             this.cbKatakana.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.cbKatakana.Location = new System.Drawing.Point(13, 30);
+            this.cbKatakana.Location = new System.Drawing.Point(13, 33);
             this.cbKatakana.Margin = new System.Windows.Forms.Padding(3, 1, 3, 1);
             this.cbKatakana.Name = "cbKatakana";
-            this.cbKatakana.Size = new System.Drawing.Size(321, 16);
-            this.cbKatakana.TabIndex = 6;
-            this.cbKatakana.Text = "表記を日本語にする。(既に読み込んだデータには反映しません)";
+            this.cbKatakana.Size = new System.Drawing.Size(403, 17);
+            this.cbKatakana.TabIndex = 9;
+            this.cbKatakana.Text = "スキル名の表記を日本語にします。(既に読み込んだデータには反映しません)";
             this.cbKatakana.MouseHover += new System.EventHandler(this.cbKatakana_MouseHover);
             // 
             // cbSParseConsider
@@ -114,12 +113,12 @@ namespace ACT_Plugin
             this.cbSParseConsider.AutoSize = true;
             this.cbSParseConsider.Checked = true;
             this.cbSParseConsider.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.cbSParseConsider.Location = new System.Drawing.Point(13, 66);
+            this.cbSParseConsider.Location = new System.Drawing.Point(13, 71);
             this.cbSParseConsider.Margin = new System.Windows.Forms.Padding(3, 1, 3, 1);
             this.cbSParseConsider.Name = "cbSParseConsider";
-            this.cbSParseConsider.Size = new System.Drawing.Size(514, 16);
-            this.cbSParseConsider.TabIndex = 8;
-            this.cbSParseConsider.Text = "（※未対応です）選択した一覧に /con, /whogroup, /whoraid コマンドでマークしたキャラクタを追加する。";
+            this.cbSParseConsider.Size = new System.Drawing.Size(479, 17);
+            this.cbSParseConsider.TabIndex = 7;
+            this.cbSParseConsider.Text = "選択した一覧に /con, /whogroup, /whoraid コマンドでマークしたキャラクタを追加します。";
             this.cbSParseConsider.MouseHover += new System.EventHandler(this.cbSParseConsider_MouseHover);
             #if DEBUG_FILE_OUTPUT
             // 
@@ -128,17 +127,17 @@ namespace ACT_Plugin
             this.cbDebugLog.AutoSize = true;
             this.cbDebugLog.Checked = false;
             this.cbDebugLog.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.cbDebugLog.Location = new System.Drawing.Point(14, 84);
+            this.cbDebugLog.Location = new System.Drawing.Point(13, 109);
             this.cbDebugLog.Margin = new System.Windows.Forms.Padding(3, 1, 3, 1);
             this.cbDebugLog.Name = "cbDebugLog";
             this.cbDebugLog.Size = new System.Drawing.Size(677, 16);
             this.cbDebugLog.TabIndex = 10;
-            this.cbDebugLog.Text = "（※デバッグ用機能なので、普段はoffにしてください。動作が重くなります）日本語プラグインで解析できなかったログを指定ファイルに出力する。";
+            this.cbDebugLog.Text = "（※デバッグ用機能なのでoff推奨。動作がかなり重くなります）JPNプラグインで解析できなかったログを指定ファイルに出力します。";
             this.cbDebugLog.MouseHover += new System.EventHandler(this.cbDebugLog_MouseHover);
             // 
             // tbDebugFileName
             // 
-            this.tbDebugFileName.Location = new System.Drawing.Point(33, 97);
+            this.tbDebugFileName.Location = new System.Drawing.Point(33, 128);
             this.tbDebugFileName.Name = "tbDebugFileName";
             this.tbDebugFileName.Size = new System.Drawing.Size(594, 19);
             this.tbDebugFileName.Text = @"D:\ACTJpnParser_debug.txt";
@@ -146,18 +145,28 @@ namespace ACT_Plugin
             // 
             // btDebugFileName
             // 
-            this.btDebugFileName.Location = new System.Drawing.Point(626, 97);
+            this.btDebugFileName.Location = new System.Drawing.Point(626, 128);
             this.btDebugFileName.Name = "btDebugFileName";
             this.btDebugFileName.Size = new System.Drawing.Size(59, 21);
             this.btDebugFileName.TabIndex = 12;
             this.btDebugFileName.Text = "...";
             this.btDebugFileName.UseVisualStyleBackColor = true;
-            this.btDebugFileName.Click += new System.EventHandler(this.btDebugFileName_Click);
             #endif
+            // 
+            // cbIncludeInterceptFocus
+            // 
+            this.cbIncludeInterceptFocus.AutoSize = true;
+            this.cbIncludeInterceptFocus.Location = new System.Drawing.Point(13, 90);
+            this.cbIncludeInterceptFocus.Margin = new System.Windows.Forms.Padding(3, 1, 3, 1);
+            this.cbIncludeInterceptFocus.Name = "cbIncludeInterceptFocus";
+            this.cbIncludeInterceptFocus.Size = new System.Drawing.Size(466, 17);
+            this.cbIncludeInterceptFocus.TabIndex = 19;
+            this.cbIncludeInterceptFocus.Text = "チャネラーペットのフォーカスダメージを解析します。(攻撃者のDPSや命中率が正しく表示されなくなります。既に読み込んだデータには反映しません)";
+            this.cbIncludeInterceptFocus.MouseHover += new System.EventHandler(this.cbIncludeInterceptFocus_MouseHover);
             // 
             // ACT_Jpn_Parser
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.AutoSize = true;
             this.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
@@ -166,12 +175,13 @@ namespace ACT_Plugin
             this.Controls.Add(this.tbDebugFileName);
             this.Controls.Add(this.cbDebugLog);
             #endif
+            this.Controls.Add(this.cbIncludeInterceptFocus);
             this.Controls.Add(this.cbKatakana);
             this.Controls.Add(this.cbMultiDamageIsOne);
             this.Controls.Add(this.cbSParseConsider);
             this.Controls.Add(this.cbRecalcWardedHits);
             this.Name = "ACT_Jpn_Parser";
-            this.Size = new System.Drawing.Size(694, 121);
+            this.Size = new System.Drawing.Size(694, 108);
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -191,6 +201,7 @@ namespace ACT_Plugin
         private CheckBox cbKatakana;
         SettingsSerializer xmlSettings;
         private CheckBox cbSParseConsider;
+        private CheckBox cbIncludeInterceptFocus;
         #if DEBUG_FILE_OUTPUT
         private CheckBox cbDebugLog;
         private TextBox tbDebugFileName;
@@ -204,7 +215,7 @@ namespace ACT_Plugin
             pluginScreenSpace.Controls.Add(this);
             this.Dock = DockStyle.Fill;
 
-            int dcIndex = -1;    // Find the Data Correction node in the Options tab
+            int dcIndex = -1;   // Find the Data Correction node in the Options tab
             for (int i = 0; i < ActGlobals.oFormActMain.OptionsTreeView.Nodes.Count; i++)
             {
                 if (ActGlobals.oFormActMain.OptionsTreeView.Nodes[i].Text == "Data Correction")
@@ -226,10 +237,16 @@ namespace ACT_Plugin
             LoadSettings();
 
             PopulateRegexArray();
+
+            SetupEQ2EnglishEnvironment();
+
             ActGlobals.oFormActMain.BeforeLogLineRead += new LogLineEventDelegate(oFormActMain_BeforeLogLineRead);
             ActGlobals.oFormActMain.BeforeCombatAction += new CombatActionDelegate(oFormActMain_BeforeCombatAction);
             ActGlobals.oFormActMain.AfterCombatAction += new CombatActionDelegate(oFormActMain_AfterCombatAction);
             ActGlobals.oFormActMain.OnLogLineRead += new LogLineEventDelegate(oFormActMain_OnLogLineRead);
+            //ActGlobals.oFormActMain.UpdateCheckClicked += new FormActMain.NullDelegate(oFormActMain_UpdateCheckClicked);
+            //if (ActGlobals.oFormActMain.GetAutomaticUpdatesAllowed())   // If ACT is set to automatically check for updates, check for updates to the plugin
+            //    new Thread(new ThreadStart(oFormActMain_UpdateCheckClicked)).Start();    // If we don't put this on a separate thread, web latency will delay the plugin init phase
             lblStatus.Text = "Plugin は有効です。";
         }
 
@@ -239,6 +256,7 @@ namespace ACT_Plugin
             ActGlobals.oFormActMain.BeforeCombatAction -= oFormActMain_BeforeCombatAction;
             ActGlobals.oFormActMain.AfterCombatAction -= oFormActMain_AfterCombatAction;
             ActGlobals.oFormActMain.OnLogLineRead -= oFormActMain_OnLogLineRead;
+            //ActGlobals.oFormActMain.UpdateCheckClicked -= oFormActMain_UpdateCheckClicked;
 
             if (optionsNode != null)    // If we added our user control to the Options tab, remove it
             {
@@ -289,17 +307,20 @@ namespace ACT_Plugin
         DateTime lastWardTime = DateTime.MinValue;
         int lastWardAmount = 0;
         string lastWardedTarget = string.Empty;
-        //Regex petSplit = new Regex(@"(?<petName>\w* ?)<(?<attacker>\w+)['?の](?<s>s?) (?<petClass>.+)>", RegexOptions.Compiled);
+        DateTime lastInterceptTime = DateTime.MinValue;
+        int lastInterceptAmount = 0;
+        string lastInterceptTarget = string.Empty;
+        string lastIntercepter = string.Empty;
         Regex petSplit = new Regex(@"(?<attacker>\w+)(?:'s|の) ?(?<petName>.+)", RegexOptions.Compiled);
-        //Regex engKillSplit = new Regex("(?<mob>.+?) in .+", RegexOptions.Compiled);
         Regex romanjiSplit = new Regex(@"\\r[iapsmq]:(?<katakana>.+?)\\::?(?<romanji>.+)\\/r", RegexOptions.Compiled);
-        Regex regexConsider = new Regex(logTimeStampRegexStr + @".+?You consider (?<player>.+?)\.\.\. .+", RegexOptions.Compiled);
+        Regex regexConsider = new Regex(logTimeStampRegexStr + @"(?:\\#......)?(?<player>.+?)を調べた。.+", RegexOptions.Compiled);
         Regex regexWhogroup = new Regex(logTimeStampRegexStr + @"(?<name>[^ ]+) Lvl \d+ .+", RegexOptions.Compiled);
         Regex regexWhoraid = new Regex(logTimeStampRegexStr + @"\[\d+ [^\]]+\] (?<name>[^ ]+) \([^\)]+\)", RegexOptions.Compiled);
-        Regex regexLogTimeStamp = new Regex(logTimeStampRegexStr, RegexOptions.Compiled);
+
         CombatActionEventArgs lastDamage = null;
 
         // -- Special Thanks Obanburumai  Start --
+        Regex regexLogTimeStamp = new Regex(logTimeStampRegexStr, RegexOptions.Compiled);
         Regex regexSkillEol = new Regex(logTimeStampRegexStr + @"..*\\/r ?(?=\r?\n|$)", RegexOptions.Compiled);
         string skillEolLogline = string.Empty;
         bool isSkillEol = false;
@@ -318,10 +339,9 @@ namespace ACT_Plugin
             regexArray[7]  = new Regex(logTimeStampRegexStr + @"(?<attacker>.+?)(?:が|は)(?<victim>.+?)を攻撃(?:。|しましたが、)(?<why>.+?)(?:がうまく妨害|によって妨げられま|はうまくかわしま)した。(?:[（(].*(?<special>ブロック|反撃|回避|受け流し|レジスト|反射|強打|カウンター).*[）)])?", RegexOptions.Compiled);
             regexArray[8]  = new Regex(logTimeStampRegexStr + @"(?<attacker>.+?)(?:が|は){1}(?<victim>.+?)を(?<skill>.+?)で攻撃(?:しましたが、|。)(?<why>.+?)(?:がうまく妨害|によって妨げられま|はうまくかわしま)した。(?:[（(].*(?<special>ブロック|反撃|回避|受け流し|レジスト|反射|強打|カウンター).*[）)])?", RegexOptions.Compiled);
             regexArray[9]  = new Regex(logTimeStampRegexStr + @"(?<victim>.+?)を倒した。", RegexOptions.Compiled);
-            // NOTE: ペットの撃墜数を（極力）召喚主の手柄としてカウントしています。でもこれは正しい動きなのだろうか？
-            //regexArray[10] = new Regex(logTimeStampRegexStr + @"(?<victim>.+?)が(?<attacker>.+?)に殺された……。", RegexOptions.Compiled);
-            regexArray[10] = new Regex(logTimeStampRegexStr + @"(?<victim>.+?)が(?<attacker>.+?)(?:(?:の|'s ?).+?)?に殺された……。", RegexOptions.Compiled);
-            regexArray[11] = new Regex(logTimeStampRegexStr + @"(?<attacker>.+?)に殺された……。", RegexOptions.Compiled);
+            regexArray[10] = new Regex(logTimeStampRegexStr + @"(?<victim>.+?)?が(?<attacker>.+?)(?:(?:の|'s ?).+?)?に殺された……。", RegexOptions.Compiled);
+            regexArray[11] = new Regex(logTimeStampRegexStr + @"(?<attacker>.+?)(?:(?:の|'s ?).+?)?に殺された……。", RegexOptions.Compiled);
+            //regexArray[11] = new Regex(logTimeStampRegexStr + @"(?<attacker>.+?)に殺された……。", RegexOptions.Compiled);
             regexArray[12] = new Regex(logTimeStampRegexStr + @"Unknown command: 'act (.+)'", RegexOptions.Compiled);
             regexArray[13] = new Regex(logTimeStampRegexStr + @"(?:(?<attacker>[^\\].+?)(?:が|の))?(?:(?<skill>.+?) ?(?:で|が|により))?(?<victim>.+?)?(?:を攻撃し|に命中し|にヒットし|攻撃を受け)、(?:ポイントパワーを)?(?<damage>\d+)ポイント(?:パワーを)?消耗(?:させ|し)(?:た|ました)。?(?:[（(](?<special>.+?)[）)])?", RegexOptions.Compiled);
             regexArray[14] = new Regex(logTimeStampRegexStr + @"(?<victim>.+?)は(?<skill>.+?) ?によ(?:って|り)ポイントパワーを(?<damage>\d+)(?:ポイント)?消耗し(?:た|ました)。(?:[（(](?<special>.+?)[）)])?", RegexOptions.Compiled);
@@ -333,35 +353,29 @@ namespace ACT_Plugin
             regexArray[20] = new Regex(logTimeStampRegexStr + @"(?<attacker>.+?|あなた)(?:の|'s) ?(?<skillType>.+?)が ?(?:(?<victim>.+?|あなた))の(?<affliction>.+?)を(?<action>ディスペル|治療)しました。", RegexOptions.Compiled);
             regexArray[21] = new Regex(logTimeStampRegexStr + @"(?<healer>.+?)[はが] ?(?<attacker>.+?)から(?<victim>.+?)へのダメージを ?(?<damage>\d+) ?減らし(?:まし)?た。", RegexOptions.Compiled);
         }
-
         void oFormActMain_BeforeLogLineRead(bool isImport, LogLineEventArgs logInfo)
         {
-            #if DEBUG_FILE_OUTPUT
-            bool isMatchLog = false;
-            #endif
-
-            // -- Special Thanks Obanburumai  Start --
-            if (this.isSkillEol)
+            if (NotQuickFail(logInfo))
             {
-                if (!regexLogTimeStamp.IsMatch(logInfo.logLine))
-                    logInfo.logLine = this.skillEolLogline + logInfo.logLine;
+                #if DEBUG_FILE_OUTPUT
+                bool isMatchLog = false;
+                #endif
 
-                this.skillEolLogline = string.Empty;
-                this.isSkillEol = false;
-            }
+                // -- Special Thanks Obanburumai  Start --
+                if (this.isSkillEol)
+                {
+                    if (!regexLogTimeStamp.IsMatch(logInfo.logLine))
+                        logInfo.logLine = this.skillEolLogline + logInfo.logLine;
 
-            if (regexSkillEol.IsMatch(logInfo.logLine))
-            {
-                this.isSkillEol = true;
-                this.skillEolLogline = logInfo.logLine;
-                this.skillEolLogline = this.skillEolLogline.Replace("\r", "").Replace("\n", "");
-            }
-            // -- Special Thanks Obanburumai  End --
-            else
-            {
+                    this.skillEolLogline = string.Empty;
+                    this.isSkillEol = false;
+                }
+                // -- Special Thanks Obanburumai  End --
+
                 for (int i = 0; i < regexArray.Length; i++)
                 {
-                    if (regexArray[i].IsMatch(logInfo.logLine))
+                    Match reMatch = regexArray[i].Match(logInfo.logLine);
+                    if (reMatch.Success)
                     {
                         #if DEBUG_FILE_OUTPUT
                         isMatchLog = true;
@@ -384,9 +398,9 @@ namespace ACT_Plugin
                                 logInfo.detectedType = Color.DarkRed.ToArgb();
                                 break;
                             case 13:
+                            case 14:
                                 logInfo.detectedType = Color.DarkOrchid.ToArgb();
                                 break;
-                            case 14:
                             case 15:
                             case 16:
                                 logInfo.detectedType = Color.DodgerBlue.ToArgb();
@@ -395,27 +409,34 @@ namespace ACT_Plugin
                                 logInfo.detectedType = Color.Black.ToArgb();
                                 break;
                         }
-                        LogExeJpn(i + 1, logInfo.logLine, isImport);
+                        LogExeJpn(reMatch, i + 1, logInfo.logLine, isImport);
                         break;
                     }
                 }
+                #if DEBUG_FILE_OUTPUT
+                if (!isMatchLog && this.cbDebugLog.Checked)
+                {
+                    string filename = @"D:\ACTJpnParser_debug.txt";
+                    if (this.tbDebugFileName.Text.Length > 0) filename = this.tbDebugFileName.Text;
+                    StreamWriter writer = new StreamWriter(filename, true, Encoding.UTF8);
+                    writer.WriteLine(logInfo.logLine);
+                    writer.Close();
+                }
+                #endif
             }
 
-            #if DEBUG_FILE_OUTPUT
-            if (!isMatchLog && this.cbDebugLog.Checked)
+            // -- Special Thanks Obanburumai  Start --
+            if (regexSkillEol.IsMatch(logInfo.logLine))
             {
-                string filename = @"D:\ACTJpnParser_debug.txt";
-                if (this.tbDebugFileName.Text.Length > 0) filename = this.tbDebugFileName.Text;
-
-                StreamWriter writer = new StreamWriter(filename, true, Encoding.UTF8);
-                writer.WriteLine(logInfo.logLine);
-                writer.Close();
+                this.isSkillEol = true;
+                this.skillEolLogline = logInfo.logLine;
+                this.skillEolLogline = this.skillEolLogline.Replace("\r", "").Replace("\n", "");
             }
-            #endif
+            // -- Special Thanks Obanburumai  End --
         }
         void oFormActMain_BeforeCombatAction(bool isImport, CombatActionEventArgs actionInfo)
         {
-            // Riposte/kontert/
+            // Riposte/kontert/отвечает & Relect/отражает
             if (lastDamage != null && lastDamage.time == actionInfo.time)
             {
                 if ((int)lastDamage.damage == (int)Dnum.Unknown && lastDamage.damage.DamageString.Contains("反撃"))
@@ -426,11 +447,11 @@ namespace ACT_Plugin
                         lastDamage.damage.DamageString2 = String.Format("({0} returned)", actionInfo.damage.ToString());
                     }
                 }
-                if ((int)actionInfo.damage == (int)Dnum.Unknown && actionInfo.damage.DamageString.Contains("reflect"))
+                if ((int)actionInfo.damage == (int)Dnum.Unknown && actionInfo.damage.DamageString.Contains("反射"))
                 {
                     if (actionInfo.theAttackType == lastDamage.theAttackType && actionInfo.victim == lastDamage.attacker)
                     {
-                        //lastDamage.special = "reflect";    // Too late to take effect
+                        //lastDamage.special = "reflect";  // Too late to take effect
                         actionInfo.damage.DamageString2 = String.Format(" ({0} returned)", lastDamage.damage.ToString());
                     }
                 }
@@ -446,9 +467,9 @@ namespace ACT_Plugin
         {
             if (cbSParseConsider.Checked)
             {
-                if (logInfo.logLine.Contains("/whoraid search results"))
+                if (logInfo.logLine.EndsWith("に対する/whoraidの結果"))
                     captureWhoraid = true;
-                if (logInfo.logLine.EndsWith("players found"))
+                if (logInfo.logLine.EndsWith("人のプレイヤーがいます。"))
                     captureWhoraid = false;
                 if (captureWhoraid && regexWhoraid.IsMatch(logInfo.logLine))
                 {
@@ -463,629 +484,506 @@ namespace ACT_Plugin
                 if (regexConsider.IsMatch(logInfo.logLine))
                 {
                     string outputName = regexConsider.Replace(logInfo.logLine, "$1");
-                    if (outputName.StartsWith("{f}"))
-                        outputName = outputName.Substring(3);
                     ActGlobals.oFormActMain.SelectiveListAdd(outputName);
                     if (!isImport)
                         System.Media.SystemSounds.Beep.Play();
                 }
             }
         }
-        
-        private void LogExeJpn(int logMatched, string logLine, bool isImport) {
-            // 追加する処理の分岐フラグ
-            int NONE_DAMAGE = 0;
-            int ADD_DAMAGE = 1;
-            int SKIP_DAMAGE = 2;
-            
-            bool isSelfAttack = false;
-            
-            int branchFlag = NONE_DAMAGE;
-            
-            string attacker, victim, damage, skillType, why, special, damageType, crit;
+
+        string[] matchKeywords = new string[] { "ダメージ", "ヒットポイント", "マナポイント", "はずした", "失敗しました", "妨害した", "妨げられました", "かわしました", "倒した", "殺された", "command", "entered", "消耗", "ヘイト", "ディスペル", "治療" };
+        private bool NotQuickFail(LogLineEventArgs logInfo)
+        {
+            foreach (string s in matchKeywords)
+            {
+                if (logInfo.logLine.Contains(s))
+                    return true;
+            }
+
+            return false;
+        }
+
+        private void LogExeJpn(Match reMatch, int logMatched, string logLine, bool isImport)
+        {
+            string attacker, victim, damage, skillType, why, crit, special, attackType;
+            List<string> attackingTypes = new List<string>();
+            List<string> damages = new List<string>();
             Regex rE = regexArray[logMatched - 1];
-            int swingType = 0;
+            SwingTypeEnum swingType;
             bool critical = false;
-            List<DamageAndType> damageAndTypeArr = new List<DamageAndType>();
+            List<DamageAndType> damageAndTypeArr;
 
             DateTime time = ActGlobals.oFormActMain.LastKnownTime;
-            
-            Dnum addCombatInDamage = null;
-            
+
+            Dnum failType;
             int gts = ActGlobals.oFormActMain.GlobalTimeSorter;
-            
-            // 初期化
-            attacker = string.Empty;
-            victim = string.Empty;
-            damage = string.Empty;
-            skillType = string.Empty;
-            why = string.Empty;
-            special = string.Empty;
-            damageType = string.Empty;
-            crit = string.Empty;
 
-            switch (logMatched) {
-            #region Case 1 [unsourced skill attacks]
-            case 1:
-                branchFlag = ADD_DAMAGE;
-                attacker = "不明";
-                victim = rE.Replace(logLine, "$1");
-                skillType = rE.Replace(logLine, "$2");
-                damage = rE.Replace(logLine, "$3");
-                special = rE.Replace(logLine, "$4");
-                special = String.IsNullOrEmpty(special) ? "None" : special;
-                crit = special;
-                swingType = (int)SwingTypeEnum.NonMelee;
-                if (skillType.Length == 0) {
-                    skillType = "不明";
-                }
-                if (!ActGlobals.oFormActMain.InCombat && !isImport) {
-                    ActGlobals.oFormSpellTimers.NotifySpell(attacker.ToLower(), skillType, victim.Contains("あなた"), victim.ToLower(), true);
-                    branchFlag = NONE_DAMAGE;
-                    break;
-                }
-                
-                break;
-            #endregion
-            #region Case 2 [melee attacks by yourself]
-            case 2:
-                attacker = rE.Replace(logLine, "$1");
-                victim = rE.Replace(logLine, "$2");
-                damage = rE.Replace(logLine, "$3");
-                special = rE.Replace(logLine, "$4");
-                crit = special;
-                special = special.Replace("クリティカルヒット・", string.Empty).Trim();
-                special = special.Replace("クリティカル・", string.Empty).Trim();
-                special = special.Replace("クリティカルヒット", string.Empty).Trim();
-                special = special.Replace("クリティカル", string.Empty).Trim();
-                if(special.Trim() == ""){
-                    special = "None";
-                }
-                if (petSplit.IsMatch(attacker)) {
-                    skillType = petSplit.Replace(attacker, "$2") + "の攻撃";
-                    attacker = petSplit.Replace(attacker, "$1");
-                    swingType = (int)SwingTypeEnum.NonMelee;
-                } else {
-                    swingType = (int)SwingTypeEnum.Melee;
-                }
-                isSelfAttack = true;
-                if (ActGlobals.oFormActMain.SetEncounter(time, attacker, victim)) {
-                    branchFlag = ADD_DAMAGE;
-                }
-                break;
-            #endregion
-            #region Case 3 [melee/non-melee attacks by expect yourself 3]
-            case 3:
-                victim = rE.Replace(logLine, "$1");
-                attacker = rE.Replace(logLine, "$2");
-                skillType = rE.Replace(logLine, "$3");
-                damage = rE.Replace(logLine, "$4");
-                special = rE.Replace(logLine, "$5");
-                crit = special;
-                special = special.Replace("クリティカルヒット・", string.Empty).Trim();
-                special = special.Replace("クリティカル・", string.Empty).Trim();
-                special = special.Replace("クリティカルヒット", string.Empty).Trim();
-                special = special.Replace("クリティカル", string.Empty).Trim();
-                if(special.Trim() == ""){
-                    special = "None";
-                }
-                isSelfAttack = true;
-                if (skillType == "攻撃") {
-                    swingType = (int)SwingTypeEnum.Melee;
-                    skillType = "";
-                }else{
-                    swingType = (int)SwingTypeEnum.NonMelee;
-                }
-                if (ActGlobals.oFormActMain.SetEncounter(time, attacker, victim)) {
-                    branchFlag = ADD_DAMAGE;
-                }
-                break;
-            #endregion
-            #region Case 4 [melee/non-melee attacks by expect yourself 2]
-            case 4:
-                attacker = rE.Replace(logLine, "$1");
-                skillType = rE.Replace(logLine, "$2");
-                victim = rE.Replace(logLine, "$3");
-                damage = rE.Replace(logLine, "$4");
-                special = rE.Replace(logLine, "$5");
-                crit = special;
-                special = special.Replace("クリティカルヒット・", string.Empty).Trim();
-                special = special.Replace("クリティカル・", string.Empty).Trim();
-                special = special.Replace("クリティカルヒット", string.Empty).Trim();
-                special = special.Replace("クリティカル", string.Empty).Trim();
-                if(special.Trim() == ""){
-                    special = "None";
-                }
-                isSelfAttack = true;
-                if (skillType == "攻撃") {
-                    swingType = (int)SwingTypeEnum.Melee;
-                    skillType = "";
-                }else{
-                    swingType = (int)SwingTypeEnum.NonMelee;
-                }
-                if (ActGlobals.oFormActMain.SetEncounter(time, attacker, victim)) {
-                    branchFlag = ADD_DAMAGE;
-                }
-                break;
-            #endregion
-            #region Case 5 [melee/non-melee attacks by expect yourself 3]
-            case 5:
-                attacker = rE.Replace(logLine, "$1");
-                skillType = rE.Replace(logLine, "$2");
-                damage = rE.Replace(logLine, "$3");
-                special = rE.Replace(logLine, "$4");
-                crit = special;
-                special = special.Replace("クリティカルヒット・", string.Empty).Trim();
-                special = special.Replace("クリティカル・", string.Empty).Trim();
-                special = special.Replace("クリティカルヒット", string.Empty).Trim();
-                special = special.Replace("クリティカル", string.Empty).Trim();
-                if(special.Trim() == ""){
-                    special = "None";
-                }
-                isSelfAttack = true;
-                victim = "あなた";
-                if (skillType == "攻撃") {
-                    swingType = (int)SwingTypeEnum.Melee;
-                    skillType = "";
-                }else{
-                    swingType = (int)SwingTypeEnum.NonMelee;
-                }
-                if (ActGlobals.oFormActMain.SetEncounter(time, attacker, victim)) {
-                    branchFlag = ADD_DAMAGE;
-                }
-                break;
-            #endregion
-            #region Case 6 [healing]
-            case 6:
-                if (!ActGlobals.oFormActMain.InCombat) {
-                    branchFlag = NONE_DAMAGE;
-                    break;
-                }
-                branchFlag = SKIP_DAMAGE;
-                attacker = rE.Replace(logLine, "$1");
-                skillType = rE.Replace(logLine, "$2");
-                victim = rE.Replace(logLine, "$3");
-                damage = rE.Replace(logLine, "$4");
-                special = rE.Replace(logLine, "$5");
-                crit = special;
-                special = special.Replace("クリティカルヒット・", string.Empty).Trim();
-                special = special.Replace("クリティカル・", string.Empty).Trim();
-                special = special.Replace("クリティカルヒット", string.Empty).Trim();
-                special = special.Replace("クリティカル", string.Empty).Trim();
-                if(special.Trim() == ""){
-                    special = "None";
-                }
-                damageType = "Hitpoints";
-                swingType = (int)SwingTypeEnum.Healing;
-                if (attacker == "あなた" && logLine.Contains("自分を")) {
-                    victim = attacker;
-                }
-                addCombatInDamage = Int32.Parse(damage);
-                break;
-            #endregion
-            #region Case 7 [misses]
-            case 7:
-                attacker = rE.Replace(logLine, "$1");
-                victim = rE.Replace(logLine, "$2");
-                why = rE.Replace(logLine, "$3");
-                special = rE.Replace(logLine, "$4");
-                addCombatInDamage = Dnum.Miss;
-
-                isSelfAttack = true;
-
-                if ((why == "攻撃") && (!petSplit.IsMatch(attacker)))
-                {
-                    swingType = (int)SwingTypeEnum.Melee;
-                    skillType = why.Trim();
-                }
-                else { // スキルmiss
-                    swingType = (int)SwingTypeEnum.NonMelee;
-                    skillType = (Regex.Split( why , "で攻撃" ))[0].Trim();
-                    if (petSplit.IsMatch(attacker))
+            switch (logMatched)
+            {
+                #region Case 1 [unsourced skill attacks]
+                case 1:
+                    victim = reMatch.Groups[1].Value;
+                    skillType = reMatch.Groups[2].Value;
+                    skillType = String.IsNullOrEmpty(skillType) ? "不明" : skillType;
+                    damage = reMatch.Groups[3].Value;
+                    special = reMatch.Groups[4].Value;
+                    special = String.IsNullOrEmpty(special) ? "None" : special;
+                    attacker = "不明";    // Unsourced melee hits show as "Unknown" attacking, so we do the same
+                    if (!ActGlobals.oFormActMain.InCombat && !isImport)
                     {
-                        skillType = petSplit.Replace(attacker, "$2") + "の" + skillType;
-                        attacker = petSplit.Replace(attacker, "$1");
+                        ActGlobals.oFormSpellTimers.NotifySpell(attacker.ToLower(), skillType, victim.Contains("あなた"), victim.ToLower(), true);
+                        break;
                     }
-                }
+                    damageAndTypeArr = JpnGetDamageAndTypeArr(damage);
 
-                if (ActGlobals.oFormActMain.SetEncounter(time, attacker, victim)) {
-                    branchFlag = SKIP_DAMAGE;
-                }
-                break;
-            #endregion
-            #region Case 8 [melee misses by interfer]
-            case 8:
-                attacker = rE.Replace(logLine, "$1");
-                victim = rE.Replace(logLine, "$2");
-                why = rE.Replace(logLine, "$3");
-                special = rE.Replace(logLine, "$4");
-                crit = special;
-
-                skillType = "攻撃";
-                damageType = "melee";
-                swingType = (int)SwingTypeEnum.Melee;
-                
-                if (petSplit.IsMatch(attacker))
-                {
-                    swingType = (int)SwingTypeEnum.NonMelee;
-                    skillType = petSplit.Replace(attacker, "$2") + "の" + skillType;
-                    attacker = petSplit.Replace(attacker, "$1");
-                }
-
-                why = why.Replace(victim, string.Empty);
-                why = why.Trim() + " " + special;
-                addCombatInDamage = new Dnum(Dnum.Unknown, why.Trim());
-                isSelfAttack = true;
-                if (ActGlobals.oFormActMain.SetEncounter(time, attacker, victim)) {
-                    branchFlag = SKIP_DAMAGE;
-                }
-                break;
-            #endregion
-            #region Case 9 [non-melee misses by interfer]
-            case 9:
-                attacker = rE.Replace(logLine, "$1");
-                victim = rE.Replace(logLine, "$2");
-                skillType = rE.Replace(logLine, "$3");
-                why = special = rE.Replace(logLine, "$4");
-                special = rE.Replace(logLine, "$5");
-                crit = special;
-                damageType = "non-melee";
-                swingType = (int)SwingTypeEnum.NonMelee;
-                
-                if (petSplit.IsMatch(attacker))
-                {
-                    skillType = petSplit.Replace(attacker, "$2") + "の" + skillType;
-                    attacker = petSplit.Replace(attacker, "$1");
-                }
-
-                why = why.Replace(victim, string.Empty);
-                why = why.Trim() + " " + special;
-                addCombatInDamage = new Dnum(Dnum.Unknown, why.Trim());
-                isSelfAttack = true;
-                if (ActGlobals.oFormActMain.SetEncounter(time, attacker, victim)) {
-                    branchFlag = SKIP_DAMAGE;
-                }
-                break;
-            #endregion
-            #region Case 10 [killing]
-            case 10:
-                if (!ActGlobals.oFormActMain.InCombat) {
-                    branchFlag = NONE_DAMAGE;
+                    if (victim == "あなた")
+                        victim = ActGlobals.charName;
+                    AddDamageAttack(attacker, victim, skillType, (int)SwingTypeEnum.NonMelee, critical, special, damageAndTypeArr, time, gts);
                     break;
-                }
-                branchFlag = SKIP_DAMAGE;
-                attacker = "あなた";
-                victim = rE.Replace(logLine, "$1");
-                swingType = (int)SwingTypeEnum.NonMelee;
-                ActGlobals.oFormSpellTimers.RemoveTimerMods(victim);
-                ActGlobals.oFormSpellTimers.DispellTimerMods(victim);
-                special = "None";
-                skillType = "Killing";
-                addCombatInDamage = Dnum.Death;
-                damageType = "Death";
-                break;
-            #endregion
-            #region Case 11 [killed]
-            case 11:
-                if (!ActGlobals.oFormActMain.InCombat) {
-                    branchFlag = NONE_DAMAGE;
-                    break;
-                }
-                branchFlag = SKIP_DAMAGE;
-                victim = rE.Replace(logLine, "$1");
-                attacker = rE.Replace(logLine, "$2");
-                swingType = (int)SwingTypeEnum.NonMelee;
-                ActGlobals.oFormSpellTimers.RemoveTimerMods(victim);
-                ActGlobals.oFormSpellTimers.DispellTimerMods(victim);
-                special = "None";
-                skillType = "Killing";
-                addCombatInDamage = Dnum.Death;
-                damageType = "Death";
-                break;
-            #endregion
-            #region Case 12 [killing yourself]
-            case 12:
-                if (!ActGlobals.oFormActMain.InCombat) {
-                    branchFlag = NONE_DAMAGE;
-                    break;
-                }
-                branchFlag = SKIP_DAMAGE;
-                victim = "あなた";
-                attacker = rE.Replace(logLine, "$1");
-                swingType = (int)SwingTypeEnum.NonMelee;
-                ActGlobals.oFormSpellTimers.RemoveTimerMods(victim);
-                ActGlobals.oFormSpellTimers.DispellTimerMods(victim);
-                special = "None";
-                skillType = "Killing";
-                addCombatInDamage = Dnum.Death;
-                damageType = "Death";
-                break;
-            #endregion
-            #region Case 13 [act commands]
-        case 13:
-                branchFlag = NONE_DAMAGE;
-                ActGlobals.oFormActMain.ActCommands(rE.Replace(logLine, "$1"));
-                break;
-            #endregion
-            #region Case 14 [power drain 1]
-            case 14:
-                branchFlag = SKIP_DAMAGE;
-                attacker = rE.Replace(logLine, "$1");
-                skillType = rE.Replace(logLine, "$2");
-                victim = rE.Replace(logLine, "$3");
-                damage = rE.Replace(logLine, "$4");
-                crit = rE.Replace(logLine, "$5");
-                special = "None";
-                swingType = (int)SwingTypeEnum.PowerDrain;
-                isSelfAttack = true;
+                #endregion
+                #region Case 2 [melee/non-melee attacks]
+                case 2:
+                case 3:
+                case 4:
+                case 5:
+                    if (logMatched == 2) {
+                        attacker = reMatch.Groups[1].Value;
+                        victim = reMatch.Groups[2].Value;
+                        damage = reMatch.Groups[3].Value;
+                        special = reMatch.Groups[4].Value;
+                        crit = special;
+                        if (petSplit.IsMatch(attacker)) {
+                            skillType = petSplit.Replace(attacker, "$2") + "の攻撃";
+                            attacker = petSplit.Replace(attacker, "$1");
+                        }
+                        else skillType = "攻撃";
+                    }
+                    else if (logMatched == 3) {
+                        victim = reMatch.Groups[1].Value;
+                        attacker = reMatch.Groups[2].Value;
+                        skillType = reMatch.Groups[3].Value;
+                        damage = reMatch.Groups[4].Value;
+                        special = reMatch.Groups[5].Value;
+                        crit = special;
+                    }
+                    else if (logMatched == 4) {
+                        attacker = reMatch.Groups[1].Value;
+                        skillType = reMatch.Groups[2].Value;
+                        victim = reMatch.Groups[3].Value;
+                        damage = reMatch.Groups[4].Value;
+                        special = reMatch.Groups[5].Value;
+                        crit = special;
+                    }
+                    else {
+                        attacker = reMatch.Groups[1].Value;
+                        skillType = reMatch.Groups[2].Value;
+                        damage = reMatch.Groups[3].Value;
+                        special = reMatch.Groups[4].Value;
+                        victim = "あなた";
+                        crit = special;
+                    }
 
-                if (attacker.Length == 0) {
-                    attacker = "あなた";
-                }
-                if (victim.Length == 0) {
-                    victim = "あなた";
-                }
-                if (skillType.Length == 0) {
-                    skillType = "攻撃";
-                }
-                
-                if (ActGlobals.oFormActMain.SetEncounter(time, attacker, victim)) {
-                    if (CheckWardedHit(victim, time)) {
-                        addCombatInDamage = new Dnum(Int32.Parse(damage) + lastWardAmount, String.Format("{0}/{1}", lastWardAmount, damage));
-                        damageType = "warded/non-melee";
-                        lastWardAmount = 0;
-                    } else {
-                        addCombatInDamage = Int32.Parse(damage);
+                    if (damage.Contains("pain and suffering"))
+                        break;
+                    damageAndTypeArr = JpnGetDamageAndTypeArr(damage);
+
+                    special = String.IsNullOrEmpty(special) ? "None" : special;
+
+                    victim = JapanesePersonaReplace(victim);
+                    if (attacker == "あなた")    // You performing melee
+                        attacker = ActGlobals.charName;
+
+                    if (attacker == victim || attacker == petSplit.Replace(victim, "$2"))
+                        break;        // You don't get credit for attacking yourself or your own pet
+                    // Traumatic Swipe / トラウマティック・スワイプ
+                    if (skillType == "Traumatic Swipe" || skillType == "トラウマティック・スワイプ" || skillType == "\\ra:トラウマティック・スワイプ\\:Traumatic Swipe\\/r")
+                        ActGlobals.oFormSpellTimers.ApplyTimerMod(attacker, victim, skillType, 0.5F, 30);
+                    if (skillType == "攻撃") {
+                        swingType = SwingTypeEnum.Melee;
+                        skillType = "";
+                    }
+                    else
+                        swingType = SwingTypeEnum.NonMelee;
+
+                    if (ActGlobals.oFormActMain.SetEncounter(time, attacker, victim))
+                    {
+                        AddDamageAttack(attacker, victim, skillType, (int)swingType, critical, special, damageAndTypeArr, time, gts);
+                    }
+                    //NotifySpell(attacker, skillType, true, victim, true);
+
+                    break;
+                #endregion
+                #region Case 3 [healing]
+                case 6:
+                    if (!ActGlobals.oFormActMain.InCombat)
+                        break;
+                    attacker = reMatch.Groups[1].Value;
+                    skillType = reMatch.Groups[2].Value;
+                    victim = reMatch.Groups[3].Value;
+                    damage = reMatch.Groups[4].Value;
+                    crit = reMatch.Groups[5].Value;
+
+                    if (crit.Contains("クリティカル"))        // Check for critical hits
+                        critical = true;
+                    else
+                        critical = false;
+
+                    special = crit.Replace("クリティカル", string.Empty).Trim();
+                    special = String.IsNullOrEmpty(special) ? "None" : special;
+
+                    victim = JapanesePersonaReplace(victim);
+                    if (attacker == "あなた")        // You healing
+                        attacker = ActGlobals.charName;
+
+                    AddCombatActionTrans((int)SwingTypeEnum.Healing, critical, special, attacker, skillType, new Dnum(Int32.Parse(damage)), time, gts, victim, "Hitpoints");
+                    break;
+                #endregion
+                #region Case 4 [misses]
+                case 7:
+                case 8:
+                case 9:
+            string damageType = "";
+                    if (logMatched == 7) {
+                        attacker = reMatch.Groups[1].Value;
+                        victim = reMatch.Groups[2].Value;
+                        why = reMatch.Groups[3].Value;
+                        special = reMatch.Groups[4].Value;
+                        if ((why == "攻撃") && (!petSplit.IsMatch(attacker)))
+                        {
+                            swingType = SwingTypeEnum.Melee;
+                            skillType = why.Trim();
+                        }
+                        else { // skill miss
+                            swingType = SwingTypeEnum.NonMelee;
+                            skillType = (Regex.Split( why , "で攻撃" ))[0].Trim();
+                            if (petSplit.IsMatch(attacker))
+                            {
+                                skillType = petSplit.Replace(attacker, "$2") + "の" + skillType;
+                                attacker = petSplit.Replace(attacker, "$1");
+                            }
+                        }
+                    }
+                    else if (logMatched == 8) {
+                        attacker = reMatch.Groups[1].Value;
+                        victim = reMatch.Groups[2].Value;
+                        why = reMatch.Groups[3].Value;
+                        special = reMatch.Groups[4].Value;
+                        crit = special;
+                        skillType = "攻撃";
+                    }
+                    else {
+                        attacker = reMatch.Groups[1].Value;
+                        victim = reMatch.Groups[2].Value;
+                        skillType = reMatch.Groups[3].Value;
+                        why = special = reMatch.Groups[4].Value;
+                        special = reMatch.Groups[5].Value;
+                        crit = special;
+                    }
+
+                    attacker = JapanesePersonaReplace(attacker);
+                    victim = JapanesePersonaReplace(attacker);
+
+                    if (skillType == "攻撃") {
+                        damageType = "melee";
+                        swingType = SwingTypeEnum.Melee;
+                    }
+                    else {
                         damageType = "non-melee";
+                        swingType = SwingTypeEnum.NonMelee;
                     }
-                }
-                break;
-            #endregion
-            #region Case 15 [power drain 2]
-            case 15:
-                branchFlag = SKIP_DAMAGE;
-                attacker = "不明";
-                victim = rE.Replace(logLine, "$1");
-                skillType = rE.Replace(logLine, "$2");
-                damage = rE.Replace(logLine, "$3");
-                crit = rE.Replace(logLine, "$4");
-                special = "None";
-                swingType = (int)SwingTypeEnum.PowerDrain;
-                isSelfAttack = true;
 
-                if (ActGlobals.oFormActMain.SetEncounter(time, attacker, victim)) {
-                    if (CheckWardedHit(victim, time)) {
-                        addCombatInDamage = new Dnum(Int32.Parse(damage) + lastWardAmount, String.Format("{0}/{1}", lastWardAmount, damage));
-                        damageType = "warded/non-melee";
-                        lastWardAmount = 0;
-                    } else {
-                        addCombatInDamage = Int32.Parse(damage);
-                        damageType = "non-melee";
+                    why = why.Replace(victim, string.Empty);
+
+                    if (String.IsNullOrEmpty(why))
+                        failType = Dnum.Miss;
+                    else
+                    {
+                        why = why.Trim() + " " + special;
+                        failType = new Dnum(Dnum.Unknown, why.Trim());
                     }
-                }
-                break;
-            #endregion
-            #region Case 16 [ward absorbtion]
-            case 16:
-                if (!ActGlobals.oFormActMain.InCombat) {
-                    branchFlag = NONE_DAMAGE;
-                    break;
-                }
-                branchFlag = SKIP_DAMAGE;
-                victim = rE.Replace(logLine, "$1");
-                damage = rE.Replace(logLine, "$2");
-                attacker = rE.Replace(logLine, "$3");
-                skillType = rE.Replace(logLine, "$4");
-                swingType = (int)SwingTypeEnum.Healing;
-                special = "None";
-                damageType = "Absorption";
-                addCombatInDamage = Int32.Parse(damage);
-                
-                if (CheckWardedHit(victim, time)) {
-                    lastWardAmount += Int32.Parse(damage);
-                } else {
-                    lastWardAmount = Int32.Parse(damage);
-                }
-                lastWardedTarget = victim;
-                lastWardTime = time;
-                break;
-            #endregion
-            #region Case 17 [ward absorbtion your spell]
-            case 17:
-                if (!ActGlobals.oFormActMain.InCombat) {
-                    branchFlag = NONE_DAMAGE;
-                    break;
-                }
-                branchFlag = SKIP_DAMAGE;
-                skillType = rE.Replace(logLine, "$1");
-                damage = rE.Replace(logLine, "$2");
-                victim = rE.Replace(logLine, "$3");
-                
-                attacker = "あなた";
-                swingType = (int)SwingTypeEnum.Healing;
-                special = "None";
-                damageType = "Absorption";
-                addCombatInDamage = Int32.Parse(damage);
-                
-                if (CheckWardedHit(victim, time)) {
-                    lastWardAmount += Int32.Parse(damage);
-                } else {
-                    lastWardAmount = Int32.Parse(damage);
-                }
-                lastWardedTarget = victim;
-                lastWardTime = time;
-                break;
-            #endregion
-            #region Case 18 [zone change]
-            case 18:
-                branchFlag = NONE_DAMAGE;
-                if (logLine.Contains(" combat by "))
-                    break;
-                string zoneName = rE.Replace(logLine, "$1").Trim();
-                if(romanjiSplit.IsMatch(zoneName)){
-                    zoneName = translateForMultiple(zoneName);
-                }
-                ActGlobals.oFormActMain.ChangeZone(zoneName);
-                break;
-            #endregion
-            #region Case 19 [power healing]
-            case 19:
-                if (!ActGlobals.oFormActMain.InCombat) {
-                    branchFlag = NONE_DAMAGE;
-                    break;
-                }
-                branchFlag = SKIP_DAMAGE;
-                attacker = rE.Replace(logLine, "$1");
-                skillType = rE.Replace(logLine, "$2");
-                victim = rE.Replace(logLine, "$3");
-                damage = rE.Replace(logLine, "$4");
-                special = rE.Replace(logLine, "$5");
-                swingType = (int)SwingTypeEnum.PowerHealing;
-                damageType = "Power";
-                crit = special;
-                special = special.Replace("クリティカルヒット・", string.Empty).Trim();
-                special = special.Replace("クリティカル・", string.Empty).Trim();
-                special = special.Replace("クリティカルヒット", string.Empty).Trim();
-                special = special.Replace("クリティカル", string.Empty).Trim();
-                if(special.Trim() == ""){
                     special = "None";
-                }
-                addCombatInDamage = Int32.Parse(damage);
-                break;
-            #endregion
-            #region Case 20 [threat]
-            case 20:
-                branchFlag = NONE_DAMAGE;
-                string owner = rE.Replace(logLine, "$1");
-                skillType = rE.Replace(logLine, "$2");
-                victim = rE.Replace(logLine, "$3");
-                attacker = rE.Replace(logLine, "$4");
-                string direction = rE.Replace(logLine, "$5");
-                damage = rE.Replace(logLine, "$6");
-                string dtype = rE.Replace(logLine, "$7");
-                special = rE.Replace(logLine, "$8");
-                swingType = (int)SwingTypeEnum.Threat;
 
-                if (owner.Length == 0) {
-                    owner = "あなた";
-                }
-                if (attacker.Contains("自分")||attacker.Contains("相手")) {
-                    attacker = owner;
-                }
-                isSelfAttack = true;
+                    if (attacker == victim || attacker == petSplit.Replace(victim, "$2"))
+                        break;        // You don't get credit for attacking yourself or your own pet
 
-                bool increase = (direction == "増加");
-                crit = special;
-                special = special.Replace("クリティカルヒット・", string.Empty).Trim();
-                special = special.Replace("クリティカル・", string.Empty).Trim();
-                special = special.Replace("クリティカルヒット", string.Empty).Trim();
-                special = special.Replace("クリティカル", string.Empty).Trim();
-                if(special.Trim() == ""){
-                    special = "None";
-                }
+                    if (ActGlobals.oFormActMain.SetEncounter(time, attacker, victim))
+                        AddCombatActionTrans((int)SwingTypeEnum.NonMelee, false, special, attacker, skillType, failType, time, gts, victim, damageType);
+                    break;
+                #endregion
+                #region Case 5 [killing]
+                case 10:
+                case 11:
+                case 12:
+                    if (logMatched == 10) {
+                        attacker = "あなた";
+                        victim = reMatch.Groups[1].Value;
+                    }
+                    else if (logMatched == 11) {
+                        victim = reMatch.Groups[1].Value;
+                        attacker = reMatch.Groups[2].Value;
+                    }
+                    else {
+                        victim = "あなた";
+                        attacker = reMatch.Groups[1].Value;
+                    }
 
-                Dnum dDamage;
-                bool positionChange = (dtype == "position");
-                if (positionChange) {
-                    dDamage = new Dnum(Dnum.ThreatPosition, String.Format("{0} Positions", Int32.Parse(damage)));
-                }
-                else {
-                    dDamage = new Dnum(Int32.Parse(damage));
-                }
+                    if (victim == "あなた")
+                        victim = ActGlobals.charName;
+            else if (victim == String.Empty)
+                        victim = "不明";
+                    if (attacker == "あなた")
+                        attacker = ActGlobals.charName;
+            else if (attacker == String.Empty)
+                        attacker = "不明";
 
-                direction = increase ? "Increase" : "Decrease";
-
-                if (ActGlobals.oFormActMain.SetEncounter(time, attacker, victim) || ActGlobals.oFormActMain.SetEncounter(time, owner, victim)) {
-                    branchFlag = SKIP_DAMAGE;
-                    damageType = direction;
-                    addCombatInDamage = dDamage;
-                }
-                break;
-            #endregion
-            #region Case 21 [dispell/cure]
-            case 21:
-                branchFlag = NONE_DAMAGE;
-                attacker = rE.Replace(logLine, "$1");
-                skillType = rE.Replace(logLine, "$2");
-                victim = rE.Replace(logLine, "$3");
-                string attackType = rE.Replace(logLine, "$4");
-                direction = rE.Replace(logLine, "$5");
-                swingType = (int)SwingTypeEnum.CureDispel;
-
-                if (attackType.Contains("Traumatic Swipe") || attackType.Contains("トラウマティック・スワイプ")){
+                    swingType = SwingTypeEnum.NonMelee;
+                    ActGlobals.oFormSpellTimers.RemoveTimerMods(victim);
                     ActGlobals.oFormSpellTimers.DispellTimerMods(victim);
-                }
+                    if (ActGlobals.oFormActMain.InCombat)
+                    {
+                        AddCombatActionTrans((int)swingType, false, "None", attacker, "Killing", Dnum.Death, time, gts, victim, "Death");
+                    }
+                    break;
+                #endregion
+                #region Case 6 [act commands]
+                case 13:
+                    ActGlobals.oFormActMain.ActCommands(rE.Replace(logLine, "$1"));
+                    break;
+                #endregion
+                #region Case 7 [power drain]
+                case 14:
+                case 15:
+                    if (logMatched == 14) {
+                        attacker = reMatch.Groups[1].Value;
+                        skillType = reMatch.Groups[2].Value;
+                        victim = reMatch.Groups[3].Value;
+                        damage = reMatch.Groups[4].Value;
+                        crit = reMatch.Groups[5].Value;
+                        if (attacker == String.Empty)
+                            attacker = "あなた";
+                        if (victim == String.Empty)
+                            victim = "あなた";
+                    }
+                    else {
+                        attacker = "不明";
+                        victim = reMatch.Groups[1].Value;
+                        skillType = reMatch.Groups[2].Value;
+                        damage = reMatch.Groups[3].Value;
+                        crit = reMatch.Groups[4].Value;
+                    }
 
-                bool cont = false;
-                if (direction.Contains("治療")) {
-                    cont = ActGlobals.oFormActMain.InCombat;
-                } else {
-                    cont = ActGlobals.oFormActMain.SetEncounter(time, attacker, victim);
-                }
-                if (cont) {
-                    branchFlag = SKIP_DAMAGE;
-                    special = attackType;
-                    addCombatInDamage = 1;
-                    damageType = direction;
-                }
-                break;
-            #endregion
-            #region Case 22 [damage interception]
+                    attacker = JapanesePersonaReplace(attacker);
+                    victim = JapanesePersonaReplace(victim);
+                    critical = crit.Contains("クリティカル");
+
+                    if (attacker == victim || attacker == petSplit.Replace(victim, "$2"))
+                        break;        // You don't get credit for attacking yourself or your own pet
+                    if (ActGlobals.oFormActMain.SetEncounter(time, attacker, victim))
+                    {
+                        if (CheckWardedHit(victim, time))
+                        {
+                            Dnum complexWardedHit = new Dnum(Int32.Parse(damage) + lastWardAmount, String.Format("{0}/{1}", lastWardAmount, damage));
+                            AddCombatActionTrans((int)SwingTypeEnum.PowerDrain, false, "None", attacker, skillType, complexWardedHit, time, gts, victim, "warded/non-melee");
+                            lastWardAmount = 0;
+                        }
+                        else
+                            AddCombatActionTrans((int)SwingTypeEnum.PowerDrain, false, "None", attacker, skillType, new Dnum(Int32.Parse(damage)), time, gts, victim, "non-melee");
+                    }
+                    break;
+                #endregion
+                #region Case 8 [ward absorbtion]
+                case 16:
+                case 17:
+                    if (!ActGlobals.oFormActMain.InCombat)
+                        break;
+                    if (logMatched == 16) {
+                        victim = reMatch.Groups[1].Value;
+                        damage = reMatch.Groups[2].Value;
+                        attacker = reMatch.Groups[3].Value;
+                        skillType = reMatch.Groups[4].Value;
+                    }
+                    else {
+                        skillType = reMatch.Groups[1].Value;
+                        damage = reMatch.Groups[2].Value;
+                        victim = reMatch.Groups[3].Value;
+                        attacker = "あなた";
+                    }
+
+                    attacker = JapanesePersonaReplace(attacker);
+                    victim = JapanesePersonaReplace(victim);
+
+                    AddCombatActionTrans((int)SwingTypeEnum.Healing, false, "None", attacker, skillType, new Dnum(Int32.Parse(damage)), time, gts, victim, "Absorption");
+
+                    if (CheckWardedHit(victim, time))
+                        lastWardAmount += Int32.Parse(damage);
+                    else
+                        lastWardAmount = Int32.Parse(damage);
+                    lastWardedTarget = victim;
+                    lastWardTime = time;
+                    break;
+                #endregion
+                #region Case 9 [zone change]
+                case 18:
+                    if (logLine.Contains(" combat by "))
+                        break;
+                    ActGlobals.oFormActMain.ChangeZone(rE.Replace(logLine, "$1").Trim());
+                    break;
+                #endregion
+                #region Case 10 [power healing]
+                case 19:
+                    if (!ActGlobals.oFormActMain.InCombat)
+                        break;
+                    attacker = reMatch.Groups[1].Value;
+                    skillType = reMatch.Groups[2].Value;
+                    victim = reMatch.Groups[3].Value;
+                    damage = reMatch.Groups[4].Value;
+                    crit = reMatch.Groups[5].Value;
+
+                    if (crit.Contains("クリティカル"))        // Check for critical hits
+                        critical = true;
+                    else
+                        critical = false;
+
+                    victim = JapanesePersonaReplace(victim);
+                    if (attacker.StartsWith("あなた"))        // You healing
+                        attacker = ActGlobals.charName;
+                    AddCombatActionTrans((int)SwingTypeEnum.PowerHealing, critical, "None", attacker, skillType, new Dnum(Int32.Parse(damage)), time, gts, victim, "Power");
+                    break;
+                #endregion
+                #region Case 11 [threat]
+                case 20:
+                    attacker = reMatch.Groups[1].Value;
+                    skillType = reMatch.Groups[2].Value;
+                    victim = reMatch.Groups[3].Value;
+                    string owner = reMatch.Groups[4].Value;
+                    string direction = reMatch.Groups[5].Value;
+                    damage = reMatch.Groups[6].Value;
+                    string position = reMatch.Groups[7].Value;
+                    special = reMatch.Groups[8].Value;
+
+                    attacker = JapanesePersonaReplace(attacker);
+                    victim = JapanesePersonaReplace(victim);
+
+                    if (String.IsNullOrEmpty(attacker))
+                        attacker = ActGlobals.charName;
+                    if (owner == "相手")
+                        owner = attacker;
+
+                    bool increase = (direction == "増加");
+                    bool positionChange = (position == "position");
+                    if (special.Trim() == "")
+                        special = "None";
+
+                    Dnum dDamage;
+                    if (positionChange)
+                        dDamage = new Dnum(Dnum.ThreatPosition, String.Format("{0} Positions", Int32.Parse(damage)));
+                    else
+                        dDamage = new Dnum(Int32.Parse(damage));
+                    direction = increase ? "Increase" : "Decrease";
+
+                    if (attacker == victim || attacker == petSplit.Replace(victim, "$2"))
+                        break;        // You don't get credit for attacking yourself or your own pet
+                    if (ActGlobals.oFormActMain.SetEncounter(time, attacker, victim) || ActGlobals.oFormActMain.SetEncounter(time, owner, victim))
+                        AddCombatActionTrans((int)SwingTypeEnum.Threat, critical, special, attacker, skillType, dDamage, time, gts, victim, direction);
+                    break;
+                #endregion
+                #region Case 12 [dispell/cure]
+                case 21:
+                    attacker = reMatch.Groups[1].Value;
+                    skillType = reMatch.Groups[2].Value;
+                    victim = reMatch.Groups[3].Value;
+                    attackType = reMatch.Groups[4].Value;
+                    direction = reMatch.Groups[5].Value;
+
+                    attacker = JapanesePersonaReplace(attacker);
+                    victim = JapanesePersonaReplace(victim);
+
+                    if (attackType == "Traumatic Swipe" || attackType == "トラウマティック・スワイプ" || attackType == "\\ra:トラウマティック・スワイプ\\:Traumatic Swipe\\/r")
+                        ActGlobals.oFormSpellTimers.DispellTimerMods(victim);
+
+                    bool cont = false;
+                    if (direction == "治療")
+                        cont = ActGlobals.oFormActMain.InCombat;
+                    else
+                        cont = ActGlobals.oFormActMain.SetEncounter(time, attacker, victim);
+                    if (cont)
+                        AddCombatActionTrans((int)SwingTypeEnum.CureDispel, false, attackType, attacker, skillType, new Dnum(1), time, gts, victim, direction);
+                    break;
+                #endregion
+                #region Case 13 [damage interception]
                 case 22:
-                branchFlag = NONE_DAMAGE;
-                attacker = rE.Replace(logLine, "$1");   // Inteceptor
-                special = rE.Replace(logLine, "$2");    // Attacker
-                victim = rE.Replace(logLine, "$3");     // Target
-                damage = rE.Replace(logLine, "$4");     // Amount
+                    if (!ActGlobals.oFormActMain.InCombat)
+                        break;
+                    attacker = reMatch.Groups[1].Value;    // Inteceptor
+                    special = reMatch.Groups[2].Value;    // Attacker
+                    victim = reMatch.Groups[3].Value;    // Target
+                    damage = reMatch.Groups[4].Value;    // Amount
 
-                swingType = (int)SwingTypeEnum.Healing;
-                skillType = "Channeler Pet";
+                    attacker = JapanesePersonaReplace(attacker);
+                    victim = JapanesePersonaReplace(victim);
 
-                if (ActGlobals.oFormActMain.SetEncounter(time, attacker, victim)) {
-                    branchFlag = SKIP_DAMAGE;
-                    damageType = "Interception";
-                    addCombatInDamage = Int32.Parse(damage);
+                    AddCombatActionTrans((int)SwingTypeEnum.Healing, false, special, attacker, "Channeler Pet", new Dnum(Int32.Parse(damage)), time, gts, victim, "Interception");
+                    if (CheckInterceptedHit(victim, time))
+                        lastInterceptAmount += Int32.Parse(damage);
+                    else
+                        lastInterceptAmount = Int32.Parse(damage);
+                    lastInterceptTarget = victim;
+                    lastInterceptTime = time;
+                    lastIntercepter = attacker;
+                    break;
+                #endregion
+                default:
+                    #if DEBUG_FILE_OUTPUT
+                    string filename = @"D:\ACTJpnParser_debug.txt";
+                    if (this.tbDebugFileName.Text.Length > 0) filename = this.tbDebugFileName.Text;
+                    StreamWriter writer = new StreamWriter(filename, true, Encoding.UTF8);
+                    writer.WriteLine(logLine);
+                    writer.Close();
+                    #endif
+                    break;
+            }
+        }
+
+
+        private bool CheckInterceptedFocus(string victim, DateTime time, List<DamageAndType> damageAndTypeArr)
+        {
+            if (cbRecalcWardedHits.Checked && lastInterceptTime == time && lastIntercepter == victim && lastInterceptAmount > 0)
+            {
+                if (damageAndTypeArr.Count == 1)
+                {
+                    if (damageAndTypeArr[0].Type == "フォーカス")
+                        return true;
                 }
-                break;
-            #endregion
-            default:
-                branchFlag = NONE_DAMAGE;
-                break;
             }
-            
-            
-            if (attacker.Contains("あなた")){
-                attacker = ActGlobals.charName;
-            }
-            if (victim.Contains("あなた") || victim.Contains("自分")){
-                victim = ActGlobals.charName;
-            }
-            if(!critical){
-                critical = crit.Contains("クリティカル");
-            }
-            
-            if (isSelfAttack && (attacker == victim || attacker == petSplit.Replace(victim, "$2"))) {
-                branchFlag = NONE_DAMAGE;
-            }
-            
-            if(branchFlag == ADD_DAMAGE){
-                damageAndTypeArr = EngGetDamageAndTypeArr(damage);
-                AddDamageAttack(swingType, critical, special, attacker, skillType, damageAndTypeArr, time, gts, victim);
-            }else if(branchFlag == SKIP_DAMAGE){
-                AddCombatActionTrans(swingType, critical, special, attacker, skillType, addCombatInDamage, time, gts, victim, damageType);
-            }
+            return false;
+        }
+        private bool CheckInterceptedHit(string victim, DateTime time)
+        {
+            return cbRecalcWardedHits.Checked && lastInterceptTime == time && lastInterceptTarget == victim && lastInterceptAmount > 0;
         }
         private bool CheckWardedHit(string victim, DateTime time)
         {
             return cbRecalcWardedHits.Checked && lastWardTime == time && lastWardedTarget == victim && lastWardAmount > 0;
         }
-        private void AddDamageAttack(int swingType, bool critical, string special, string attacker, string skillType, List<DamageAndType> damageAndTypeArr, DateTime time, int gts, string victim)
+        private void AddDamageAttack(string attacker, string victim, string skillType, int swingType, bool critical, string special, List<DamageAndType> damageAndTypeArr, DateTime time, int gts)
         {
             int damageTotal = 0;
             if (cbMultiDamageIsOne.Checked)
             {
                 string damageStr = string.Empty;
                 string typeStr = string.Empty;
+                if (CheckInterceptedFocus(victim, time, damageAndTypeArr))
+                {
+                    if (!cbIncludeInterceptFocus.Checked)
+                        return;
+                }
+                if (CheckInterceptedHit(victim, time))
+                {
+                    damageTotal = lastInterceptAmount;
+                    damageStr += String.Format("{0}/", damageTotal);
+                    typeStr += String.Format("{0}/", "intercepted");
+                    lastInterceptAmount = 0;
+                }
                 if (CheckWardedHit(victim, time))
                 {
                     damageTotal = lastWardAmount;
@@ -1103,49 +1001,115 @@ namespace ACT_Plugin
                 typeStr = typeStr.TrimEnd(new char[] { '/' });
                 if (String.IsNullOrEmpty(skillType))
                     skillType = typeStr;
-                
+
                 AddCombatActionTrans(swingType, critical, special, attacker, skillType, new Dnum(damageTotal, damageStr), time, gts, victim, typeStr);
             }
             else
             {
-                bool nullSkillType = false;
-                if (String.IsNullOrEmpty(skillType))
-                    nullSkillType = true;
+                bool nullSkillType = String.IsNullOrEmpty(skillType);
+                
                 for (int i = 0; i < damageAndTypeArr.Count; i++)
                 {
-                    damageTotal += damageAndTypeArr[i].Damage;
+                    damageTotal = damageAndTypeArr[i].Damage;
+                    string damageStr = damageAndTypeArr[i].Damage.ToString();
                     if (nullSkillType)
                         skillType = damageAndTypeArr[i].Type;
-                    if (i == damageAndTypeArr.Count - 1 && CheckWardedHit(victim, time))
+
+                    if (CheckInterceptedFocus(victim, time, damageAndTypeArr))
                     {
+                        if (!cbIncludeInterceptFocus.Checked)
+                            continue;
+                    }
+
+                    if (i == damageAndTypeArr.Count - 1 && (CheckWardedHit(victim, time) || CheckInterceptedHit(victim, time)))
+                    {
+                        damageTotal += lastInterceptAmount;
                         damageTotal += lastWardAmount;
+                        lastInterceptAmount = 0;
                         lastWardAmount = 0;
                     }
-                    AddCombatActionTrans(swingType, critical, special, attacker, skillType, damageTotal, time, gts, victim, damageAndTypeArr[i].Type);
+                    AddCombatActionTrans(swingType, critical, special, attacker, skillType, new Dnum(damageTotal, damageStr), time, gts, victim, damageAndTypeArr[i].Type);
                 }
             }
         }
-        public void AddCombatActionTrans(int SwingType, bool Critical, string Special, string Attacker, string theAttackType, Dnum Damage, DateTime Time, int TimeSorter, string Victim, string theDamageType)
+        public void AddCombatAction(int SwingType, bool Critical, string Special, string Attacker, string theAttackType, Dnum Damage, DateTime Time, int TimeSorter, string Victim, string theDamageType)
         {
-            if(romanjiSplit.IsMatch(theDamageType)){
-                theDamageType = translateForMultiple(theDamageType);
+            if (romanjiSplit.IsMatch(theAttackType))
+            {
+                if (cbKatakana.Checked)
+                    theAttackType = romanjiSplit.Replace(theAttackType, "$1");
+                else
+                    theAttackType = romanjiSplit.Replace(theAttackType, "$2");
             }
-            if(romanjiSplit.IsMatch(theAttackType)){
-                theAttackType = translateForMultiple(theAttackType);
+            if (romanjiSplit.IsMatch(Attacker))
+            {
+                if (cbKatakana.Checked)
+                    Attacker = romanjiSplit.Replace(Attacker, "$1");
+                else
+                    Attacker = romanjiSplit.Replace(Attacker, "$2");
             }
-            if(romanjiSplit.IsMatch(Attacker)){
-                Attacker = translateForMultiple(Attacker);
+            if (romanjiSplit.IsMatch(Victim))
+            {
+                if (cbKatakana.Checked)
+                    Victim = romanjiSplit.Replace(Victim, "$1");
+                else
+                    Victim = romanjiSplit.Replace(Victim, "$2");
             }
-            if(romanjiSplit.IsMatch(Victim)){
-                Victim = translateForMultiple(Victim);
-            }
-            if(romanjiSplit.IsMatch(Special)){
-                Special = translateForMultiple(Special);
-            }
-            
+
             ActGlobals.oFormActMain.AddCombatAction(SwingType, Critical, Special, Attacker, theAttackType, Damage, Time, TimeSorter, Victim, theDamageType);
         }
-        private string translateForMultiple(string transTarget) {
+
+        string[] criticalWords = new string[] { "レジェンダリ ", "フェイブルド ", "ミシカル " };
+        public void AddCombatActionTrans(int SwingType, bool Critical, string Special, string Attacker, string theAttackType, Dnum Damage, DateTime Time, int TimeSorter, string Victim, string theDamageType)
+        {
+            string critStr = String.Empty;
+            if (Special.Contains("クリティカル"))
+            {
+                Critical = true;
+                foreach (string s in criticalWords)
+                {
+                    if (Special.Contains(s))
+                    {
+                        Special = Special.Replace(s, string.Empty);
+                        critStr = s;
+                        break;
+                    }
+                }
+                Special = Special.Replace("・", string.Empty);
+                Special = Special.Replace("ヒット", string.Empty);
+                Special = Special.Replace("クリティカル", string.Empty);
+                Special = Special.Replace("Critical ", string.Empty);
+                critStr += "クリティカルヒット";
+            }
+
+            if (!Critical)
+                critStr = "None";
+            
+            if(Special.Trim() == "")
+                Special = "None";
+
+            if (romanjiSplit.IsMatch(theDamageType))
+                theDamageType = translateForMultiple(theDamageType);
+
+            if (romanjiSplit.IsMatch(theAttackType))
+                theAttackType = translateForMultiple(theAttackType);
+
+            if (romanjiSplit.IsMatch(Attacker))
+                Attacker = translateForMultiple(Attacker);
+
+            if (romanjiSplit.IsMatch(Victim))
+                Victim = translateForMultiple(Victim);
+
+            if (romanjiSplit.IsMatch(Special))
+                Special = translateForMultiple(Special);
+
+            MasterSwing ms = new MasterSwing(SwingType, Critical, Special, Damage, Time, TimeSorter, theAttackType, Attacker, theDamageType, Victim);
+            ms.Tags["CriticalStr"] = critStr;
+            ActGlobals.oFormActMain.AddCombatAction(ms);
+        }
+
+        private string translateForMultiple(string transTarget)
+        {
             string returnValue = string.Empty;
             
             transTarget = transTarget.Replace("\\ri:","");
@@ -1183,12 +1147,22 @@ namespace ACT_Plugin
             
             return returnValue;
         }
-        private List<DamageAndType> EngGetDamageAndTypeArr(string damageAndType) {
+
+        private string JapanesePersonaReplace(string input)
+        {
+            if (input.Contains("あなた"))
+                return ActGlobals.charName;
+            if (input.Contains("自分"))
+                return ActGlobals.charName;
+            return input;
+        }
+
+        private List<DamageAndType> JpnGetDamageAndTypeArr(string damageAndType)
+        {
             List<DamageAndType> outList = new List<DamageAndType>();
             damageAndType = damageAndType.Replace(" and ", ", ");
             damageAndType = damageAndType.Replace("ポイントの", " ");
             string[] entries = damageAndType.Split(new string[] { ", " }, StringSplitOptions.RemoveEmptyEntries);
-            
 
             for (int i = 0; i < entries.Length; i++)
             {
@@ -1196,6 +1170,7 @@ namespace ACT_Plugin
             }
             return outList;
         }
+
         private class DamageAndType
         {
             int damage;
@@ -1234,7 +1209,6 @@ namespace ACT_Plugin
             }
         }
         #endregion
-
         void LoadSettings()
         {
             // Add items to the xmlSettings object here...
@@ -1242,6 +1216,7 @@ namespace ACT_Plugin
             xmlSettings.AddControlSetting(cbRecalcWardedHits.Name, cbRecalcWardedHits);
             xmlSettings.AddControlSetting(cbKatakana.Name, cbKatakana);
             xmlSettings.AddControlSetting(cbSParseConsider.Name, cbSParseConsider);
+            xmlSettings.AddControlSetting(cbIncludeInterceptFocus.Name, cbIncludeInterceptFocus);
 
             if (File.Exists(settingsFile))
             {
@@ -1268,7 +1243,6 @@ namespace ACT_Plugin
                 xReader.Close();
             }
         }
-
         void SaveSettings()
         {
             FileStream fs = new FileStream(settingsFile, FileMode.Create, FileAccess.Write, FileShare.ReadWrite);
@@ -1293,42 +1267,552 @@ namespace ACT_Plugin
         }
         private void cbMultiDamageIsOne_MouseHover(object sender, EventArgs e)
         {
-            ActGlobals.oFormActMain.SetOptionsHelpText("未対応です：複数属性攻撃(300 斬撃ダメージ、5 毒ダメージ、5 病気ダメージ)を合計ダメージ(「300/5/5 斬撃/毒/病気」を 「310」）で出力します。If disabled, each damage type will show up as an individual swing, IE three attacks: 300 crushing; 5 poison; 5 disease.  Having a single attack show up as multiple will have consequences when calculating ToHit%.");
+            ActGlobals.oFormActMain.SetOptionsHelpText("有効にすると、複数属性攻撃(300 斬撃ダメージ、5 毒ダメージ、5 病気ダメージ)を合計ダメージ(「300/5/5 斬撃/毒/病気」を 「310」）で出力します。無効にすると、複数属性攻撃を複数回の攻撃として出力します。これは命中率の計算に影響します。");
         }
         private void cbKatakana_MouseHover(object sender, EventArgs e)
         {
-            ActGlobals.oFormActMain.SetOptionsHelpText("日本語と英語の表記があるものについて、日本語を有効にします。(例：ゾーンやアビリティ名など)");
+            ActGlobals.oFormActMain.SetOptionsHelpText("日本語と英語が併記されているものについて、日本語を有効にします。(例：ゾーンやアビリティ名など)");
         }
         private void cbSParseConsider_MouseHover(object sender, EventArgs e)
         {
-            ActGlobals.oFormActMain.SetOptionsHelpText("未対応です：The /con command simply adds some text to the log about your target's con-level.  The /whogroup and /whoraid commands will list the members of your group/raid respectively.  Using this option will allow you to quickly add players to the Selective Parsing list.");
+            ActGlobals.oFormActMain.SetOptionsHelpText("選択した一覧に /con, /whogroup, /whoraid コマンドでマークしたキャラクタを追加します。");
         }
-
-        #if DEBUG_FILE_OUTPUT
         private void cbDebugLog_MouseHover(object sender, EventArgs e)
         {
-            ActGlobals.oFormActMain.SetOptionsHelpText("（※デバッグ用機能です）pluginで解析できなかったログを、指定ファイルに出力します。動作が重くなるので普段はoffにしてください。");
+            ActGlobals.oFormActMain.SetOptionsHelpText("日本語プラグインで解析できなかったログを、指定ファイルに出力します。(デバッグ用機能です。普段はoffにしてください。動作が重くなります)");
+        }
+        private void cbIncludeInterceptFocus_MouseHover(object sender, EventArgs e)
+        {
+            ActGlobals.oFormActMain.SetOptionsHelpText("チャネラーペットのフォーカスダメージを解析します。(攻撃者のDPSや命中率が正しく表示されなくなります。既に読み込んだデータには反映しません)");
         }
 
-        private void btDebugFileName_Click(object sender, EventArgs e)
+        private string GetIntCommas()
         {
-            OpenFileDialog ofd = new OpenFileDialog();
-            if (this.tbDebugFileName.Text.Length == 0)
-                ofd.FileName = "ACTJpnParser_debug.txt";
-            else ofd.FileName = System.IO.Path.GetFileName(this.tbDebugFileName.Text);
-            if (this.tbDebugFileName.Text.Length == 0)
-                ofd.InitialDirectory = @"D:\";
-            else ofd.FileName = System.IO.Path.GetDirectoryName(this.tbDebugFileName.Text);
-            ofd.Filter = "テキストファイル(*.txt)|*.txt|すべてのファイル(*.*)|*.*";
-            ofd.FilterIndex = 2;
-            ofd.Title = "出力ファイル名を選択してください";
+            return ActGlobals.mainTableShowCommas ? "#,0" : "0";
+        }
+        private string GetFloatCommas()
+        {
+            return ActGlobals.mainTableShowCommas ? "#,0.00" : "0.00";
+        }
+        private void SetupEQ2EnglishEnvironment()
+        {
+            CultureInfo usCulture = new CultureInfo("en-US");    // This is for SQL syntax; do not change
 
-            if (ofd.ShowDialog() == DialogResult.OK)
+
+            if (!CombatantData.ColumnDefs.ContainsKey("CritTypes"))
+                CombatantData.ColumnDefs.Add("CritTypes", new CombatantData.ColumnDef("CritTypes", true, "VARCHAR(32)", "CritTypes", CombatantDataGetCritTypes, CombatantDataGetCritTypes, (Left, Right) => { return CombatantDataGetCritTypes(Left).CompareTo(CombatantDataGetCritTypes(Right)); }));
+            if (!CombatantData.ExportVariables.ContainsKey("crittypes"))
+                CombatantData.ExportVariables.Add("crittypes", new CombatantData.TextExportFormatter("crittypes", "Critical Types", "Distribution of Critical Types  (Normal|Legendary|Fabled|Mythical)", (Data, Extra) => { return CombatantFormatSwitch(Data, "crittypes", Extra); }));
+
+            if (!DamageTypeData.ColumnDefs.ContainsKey("CritTypes"))
+                DamageTypeData.ColumnDefs.Add("CritTypes", new DamageTypeData.ColumnDef("CritTypes", true, "VARCHAR(32)", "CritTypes", DamageTypeDataGetCritTypes, DamageTypeDataGetCritTypes));
+
+            if (!AttackType.ColumnDefs.ContainsKey("CritTypes"))
+                AttackType.ColumnDefs.Add("CritTypes", new AttackType.ColumnDef("CritTypes", true, "VARCHAR(32)", "CritTypes", AttackTypeGetCritTypes, AttackTypeGetCritTypes, (Left, Right) => { return AttackTypeGetCritTypes(Left).CompareTo(AttackTypeGetCritTypes(Right)); }));
+
+            if (!MasterSwing.ColumnDefs.ContainsKey("CriticalStr"))
+                MasterSwing.ColumnDefs.Add("CriticalStr", new MasterSwing.ColumnDef("CriticalStr", true, "VARCHAR(32)", "CriticalStr", (Data) =>
+                {
+                    if (Data.Tags.ContainsKey("CriticalStr"))
+                        return (string)Data.Tags["CriticalStr"];
+                    else
+                        return "None";
+                }, (Data) =>
+                {
+                    if (Data.Tags.ContainsKey("CriticalStr"))
+                        return (string)Data.Tags["CriticalStr"];
+                    else
+                        return "None";
+                }, (Left, Right) =>
+                {
+                    string left = Left.Tags.ContainsKey("CriticalStr") ? (string)Left.Tags["CriticalStr"] : "None";
+                    string right = Right.Tags.ContainsKey("CriticalStr") ? (string)Right.Tags["CriticalStr"] : "None";
+                    return left.CompareTo(right);
+                }));
+
+            foreach (KeyValuePair<string, MasterSwing.ColumnDef> pair in MasterSwing.ColumnDefs)
+                pair.Value.GetCellForeColor = (Data) => { return GetSwingTypeColor(Data.SwingType); };
+
+            ActGlobals.oFormActMain.ValidateLists();
+            ActGlobals.oFormActMain.ValidateTableSetup();
+        }
+        private string CombatantDataGetCritTypes(CombatantData Data)
+        {
+            AttackType at;
+            if (Data.AllOut.TryGetValue(ActGlobals.ActLocalization.LocalizationStrings["attackTypeTerm-all"].DisplayedText, out at))
             {
-                this.tbDebugFileName.Text = ofd.FileName;
+                return AttackTypeGetCritTypes(at);
+            }
+            else
+                return "-";
+        }
+        private string DamageTypeDataGetCritTypes(DamageTypeData Data)
+        {
+            AttackType at;
+            if (Data.Items.TryGetValue(ActGlobals.ActLocalization.LocalizationStrings["attackTypeTerm-all"].DisplayedText, out at))
+            {
+                return AttackTypeGetCritTypes(at);
+            }
+            else
+                return "-";
+        }
+        private string AttackTypeGetCritTypes(AttackType Data)
+        {
+            int crit = 0;
+            int lCrit = 0;
+            int fCrit = 0;
+            int mCrit = 0;
+            for (int i = 0; i < Data.Items.Count; i++)
+            {
+                MasterSwing ms = Data.Items[i];
+                if (ms.Critical)
+                {
+                    crit++;
+                    if (!ms.Tags.ContainsKey("CriticalStr"))
+                        continue;
+                    if (((string)ms.Tags["CriticalStr"]).Contains("レジェンダリ"))
+                    {
+                        lCrit++;
+                        continue;
+                    }
+                    if (((string)ms.Tags["CriticalStr"]).Contains("フェイブルド"))
+                    {
+                        fCrit++;
+                        continue;
+                    }
+                    if (((string)ms.Tags["CriticalStr"]).Contains("ミシカル"))
+                    {
+                        mCrit++;
+                        continue;
+                    }
+                }
+            }
+            float lCritPerc = ((float)lCrit / (float)crit) * 100f;
+            float fCritPerc = ((float)fCrit / (float)crit) * 100f;
+            float mCritPerc = ((float)mCrit / (float)crit) * 100f;
+            if (crit == 0)
+                return "-";
+            return String.Format("{0:0.0}%L - {1:0.0}%F - {2:0.0}%M", lCritPerc, fCritPerc, mCritPerc);
+        }
+        private Color GetSwingTypeColor(int SwingType)
+        {
+            switch (SwingType)
+            {
+                case 1:
+                case 2:
+                    return Color.Crimson;
+                case 3:
+                    return Color.Blue;
+                case 4:
+                    return Color.DarkRed;
+                case 5:
+                    return Color.DarkOrange;
+                case 8:
+                    return Color.DarkOrchid;
+                case 9:
+                    return Color.DodgerBlue;
+                default:
+                    return Color.Black;
             }
         }
-        #endif
+        private string EncounterFormatSwitch(EncounterData Data, List<CombatantData> SelectiveAllies, string VarName, string Extra)
+        {
+            long damage = 0;
+            long healed = 0;
+            int swings = 0;
+            int hits = 0;
+            int crits = 0;
+            int heals = 0;
+            int critheals = 0;
+            int cures = 0;
+            int misses = 0;
+            int hitfail = 0;
+            float tohit = 0;
+            double dps = 0;
+            double hps = 0;
+            long healstaken = 0;
+            long damagetaken = 0;
+            long powerdrain = 0;
+            long powerheal = 0;
+            int kills = 0;
+            int deaths = 0;
+
+            switch (VarName)
+            {
+                case "maxheal":
+                    return Data.GetMaxHeal(true, false);
+                case "MAXHEAL":
+                    return Data.GetMaxHeal(false, false);
+                case "maxhealward":
+                    return Data.GetMaxHeal(true, true);
+                case "MAXHEALWARD":
+                    return Data.GetMaxHeal(false, true);
+                case "maxhit":
+                    return Data.GetMaxHit(true);
+                case "MAXHIT":
+                    return Data.GetMaxHit(false);
+                case "duration":
+                    return Data.DurationS;
+                case "DURATION":
+                    return Data.Duration.TotalSeconds.ToString("0");
+                case "damage":
+                    foreach (CombatantData cd in SelectiveAllies)
+                        damage += cd.Damage;
+                    return damage.ToString();
+                case "damage-m":
+                    foreach (CombatantData cd in SelectiveAllies)
+                        damage += cd.Damage;
+                    return (damage / 1000000.0).ToString("0.00");
+                case "DAMAGE-k":
+                    foreach (CombatantData cd in SelectiveAllies)
+                        damage += cd.Damage;
+                    return (damage / 1000.0).ToString("0");
+                case "DAMAGE-m":
+                    foreach (CombatantData cd in SelectiveAllies)
+                        damage += cd.Damage;
+                    return (damage / 1000000.0).ToString("0");
+                case "healed":
+                    foreach (CombatantData cd in SelectiveAllies)
+                        healed += cd.Healed;
+                    return healed.ToString();
+                case "swings":
+                    foreach (CombatantData cd in SelectiveAllies)
+                        swings += cd.Swings;
+                    return swings.ToString();
+                case "hits":
+                    foreach (CombatantData cd in SelectiveAllies)
+                        hits += cd.Hits;
+                    return hits.ToString();
+                case "crithits":
+                    foreach (CombatantData cd in SelectiveAllies)
+                        crits += cd.CritHits;
+                    return crits.ToString();
+                case "crithit%":
+                    foreach (CombatantData cd in SelectiveAllies)
+                        crits += cd.CritHits;
+                    foreach (CombatantData cd in SelectiveAllies)
+                        hits += cd.Hits;
+                    float crithitperc = (float)crits / (float)hits;
+                    return crithitperc.ToString("0'%");
+                case "heals":
+                    foreach (CombatantData cd in SelectiveAllies)
+                        heals += cd.Heals;
+                    return heals.ToString();
+                case "critheals":
+                    foreach (CombatantData cd in SelectiveAllies)
+                        critheals += cd.CritHits;
+                    return critheals.ToString();
+                case "critheal%":
+                    foreach (CombatantData cd in SelectiveAllies)
+                        critheals += cd.CritHeals;
+                    foreach (CombatantData cd in SelectiveAllies)
+                        heals += cd.Heals;
+                    float crithealperc = (float)critheals / (float)heals;
+                    return crithealperc.ToString("0'%");
+                case "cures":
+                    foreach (CombatantData cd in SelectiveAllies)
+                        cures += cd.CureDispels;
+                    return cures.ToString();
+                case "misses":
+                    foreach (CombatantData cd in SelectiveAllies)
+                        misses += cd.Misses;
+                    return misses.ToString();
+                case "hitfailed":
+                    foreach (CombatantData cd in SelectiveAllies)
+                        hitfail += cd.Blocked;
+                    return hitfail.ToString();
+                case "TOHIT":
+                    foreach (CombatantData cd in SelectiveAllies)
+                        tohit += cd.ToHit;
+                    tohit /= SelectiveAllies.Count;
+                    return tohit.ToString("0");
+                case "DPS":
+                case "ENCDPS":
+                    foreach (CombatantData cd in SelectiveAllies)
+                        damage += cd.Damage;
+                    dps = damage / Data.Duration.TotalSeconds;
+                    return dps.ToString("0");
+                case "DPS-k":
+                case "ENCDPS-k":
+                    foreach (CombatantData cd in SelectiveAllies)
+                        damage += cd.Damage;
+                    dps = damage / Data.Duration.TotalSeconds;
+                    return (dps / 1000.0).ToString("0");
+                case "ENCHPS":
+                    foreach (CombatantData cd in SelectiveAllies)
+                        healed += cd.Healed;
+                    hps = healed / Data.Duration.TotalSeconds;
+                    return hps.ToString("0");
+                case "ENCHPS-k":
+                    foreach (CombatantData cd in SelectiveAllies)
+                        healed += cd.Healed;
+                    hps = healed / Data.Duration.TotalSeconds;
+                    return (hps / 1000.0).ToString("0");
+                case "tohit":
+                    foreach (CombatantData cd in SelectiveAllies)
+                        tohit += cd.ToHit;
+                    tohit /= SelectiveAllies.Count;
+                    return tohit.ToString("F");
+                case "dps":
+                case "encdps":
+                    foreach (CombatantData cd in SelectiveAllies)
+                        damage += cd.Damage;
+                    dps = damage / Data.Duration.TotalSeconds;
+                    return dps.ToString("F");
+                case "dps-k":
+                case "encdps-k":
+                    foreach (CombatantData cd in SelectiveAllies)
+                        damage += cd.Damage;
+                    dps = damage / Data.Duration.TotalSeconds;
+                    return (dps / 1000.0).ToString("F");
+                case "enchps":
+                    foreach (CombatantData cd in SelectiveAllies)
+                        healed += cd.Healed;
+                    hps = healed / Data.Duration.TotalSeconds;
+                    return hps.ToString("F");
+                case "enchps-k":
+                    foreach (CombatantData cd in SelectiveAllies)
+                        healed += cd.Healed;
+                    hps = healed / Data.Duration.TotalSeconds;
+                    return (hps / 1000.0).ToString("F");
+                case "healstaken":
+                    foreach (CombatantData cd in SelectiveAllies)
+                        healstaken += cd.HealsTaken;
+                    return healstaken.ToString();
+                case "damagetaken":
+                    foreach (CombatantData cd in SelectiveAllies)
+                        damagetaken += cd.DamageTaken;
+                    return damagetaken.ToString();
+                case "powerdrain":
+                    foreach (CombatantData cd in SelectiveAllies)
+                        powerdrain += cd.PowerDamage;
+                    return powerdrain.ToString();
+                case "powerheal":
+                    foreach (CombatantData cd in SelectiveAllies)
+                        powerheal += cd.PowerReplenish;
+                    return powerheal.ToString();
+                case "kills":
+                    foreach (CombatantData cd in SelectiveAllies)
+                        kills += cd.Kills;
+                    return kills.ToString();
+                case "deaths":
+                    foreach (CombatantData cd in SelectiveAllies)
+                        deaths += cd.Deaths;
+                    return deaths.ToString();
+                case "title":
+                    return Data.Title;
+
+                default:
+                    return VarName;
+            }
+        }
+        private string CombatantFormatSwitch(CombatantData Data, string VarName, string Extra)
+        {
+            int len = 0;
+            switch (VarName)
+            {
+                case "name":
+                    return Data.Name;
+                case "NAME":
+                    len = Int32.Parse(Extra);
+                    return Data.Name.Length - len > 0 ? Data.Name.Remove(len, Data.Name.Length - len).Trim() : Data.Name;
+                case "NAME3":
+                    len = 3;
+                    return Data.Name.Length - len > 0 ? Data.Name.Remove(len, Data.Name.Length - len).Trim() : Data.Name;
+                case "NAME4":
+                    len = 4;
+                    return Data.Name.Length - len > 0 ? Data.Name.Remove(len, Data.Name.Length - len).Trim() : Data.Name;
+                case "NAME5":
+                    len = 5;
+                    return Data.Name.Length - len > 0 ? Data.Name.Remove(len, Data.Name.Length - len).Trim() : Data.Name;
+                case "NAME6":
+                    len = 6;
+                    return Data.Name.Length - len > 0 ? Data.Name.Remove(len, Data.Name.Length - len).Trim() : Data.Name;
+                case "NAME7":
+                    len = 7;
+                    return Data.Name.Length - len > 0 ? Data.Name.Remove(len, Data.Name.Length - len).Trim() : Data.Name;
+                case "NAME8":
+                    len = 8;
+                    return Data.Name.Length - len > 0 ? Data.Name.Remove(len, Data.Name.Length - len).Trim() : Data.Name;
+                case "NAME9":
+                    len = 9;
+                    return Data.Name.Length - len > 0 ? Data.Name.Remove(len, Data.Name.Length - len).Trim() : Data.Name;
+                case "NAME10":
+                    len = 10;
+                    return Data.Name.Length - len > 0 ? Data.Name.Remove(len, Data.Name.Length - len).Trim() : Data.Name;
+                case "NAME11":
+                    len = 11;
+                    return Data.Name.Length - len > 0 ? Data.Name.Remove(len, Data.Name.Length - len).Trim() : Data.Name;
+                case "NAME12":
+                    len = 12;
+                    return Data.Name.Length - len > 0 ? Data.Name.Remove(len, Data.Name.Length - len).Trim() : Data.Name;
+                case "NAME13":
+                    len = 13;
+                    return Data.Name.Length - len > 0 ? Data.Name.Remove(len, Data.Name.Length - len).Trim() : Data.Name;
+                case "NAME14":
+                    len = 14;
+                    return Data.Name.Length - len > 0 ? Data.Name.Remove(len, Data.Name.Length - len).Trim() : Data.Name;
+                case "NAME15":
+                    len = 15;
+                    return Data.Name.Length - len > 0 ? Data.Name.Remove(len, Data.Name.Length - len).Trim() : Data.Name;
+                case "DURATION":
+                    return Data.Duration.TotalSeconds.ToString("0");
+                case "duration":
+                    return Data.DurationS;
+                case "maxhit":
+                    return Data.GetMaxHit(true);
+                case "MAXHIT":
+                    return Data.GetMaxHit(false);
+                case "maxheal":
+                    return Data.GetMaxHeal(true, false);
+                case "MAXHEAL":
+                    return Data.GetMaxHeal(false, false);
+                case "maxhealward":
+                    return Data.GetMaxHeal(true, true);
+                case "MAXHEALWARD":
+                    return Data.GetMaxHeal(false, true);
+                case "damage":
+                    return Data.Damage.ToString();
+                case "damage-k":
+                    return (Data.Damage / 1000.0).ToString("0.00");
+                case "damage-m":
+                    return (Data.Damage / 1000000.0).ToString("0.00");
+                case "DAMAGE-k":
+                    return (Data.Damage / 1000.0).ToString("0");
+                case "DAMAGE-m":
+                    return (Data.Damage / 1000000.0).ToString("0");
+                case "healed":
+                    return Data.Healed.ToString();
+                case "swings":
+                    return Data.Swings.ToString();
+                case "hits":
+                    return Data.Hits.ToString();
+                case "crithits":
+                    return Data.CritHits.ToString();
+                case "critheals":
+                    return Data.CritHeals.ToString();
+                case "crittypes":
+                    return CombatantDataGetCritTypes(Data);
+                case "crithit%":
+                    return Data.CritDamPerc.ToString("0'%");
+                case "critheal%":
+                    return Data.CritHealPerc.ToString("0'%");
+                case "heals":
+                    return Data.Heals.ToString();
+                case "cures":
+                    return Data.CureDispels.ToString();
+                case "misses":
+                    return Data.Misses.ToString();
+                case "hitfailed":
+                    return Data.Blocked.ToString();
+                case "TOHIT":
+                    return Data.ToHit.ToString("0");
+                case "DPS":
+                    return Data.DPS.ToString("0");
+                case "DPS-k":
+                    return (Data.DPS / 1000.0).ToString("0");
+                case "ENCDPS":
+                    return Data.EncDPS.ToString("0");
+                case "ENCDPS-k":
+                    return (Data.EncDPS / 1000.0).ToString("0");
+                case "ENCHPS":
+                    return Data.EncHPS.ToString("0");
+                case "ENCHPS-k":
+                    return (Data.EncHPS / 1000.0).ToString("0");
+                case "tohit":
+                    return Data.ToHit.ToString("F");
+                case "dps":
+                    return Data.DPS.ToString("F");
+                case "dps-k":
+                    return (Data.DPS / 1000.0).ToString("F");
+                case "encdps":
+                    return Data.EncDPS.ToString("F");
+                case "encdps-k":
+                    return (Data.EncDPS / 1000.0).ToString("F");
+                case "enchps":
+                    return Data.EncHPS.ToString("F");
+                case "enchps-k":
+                    return (Data.EncHPS / 1000.0).ToString("F");
+                case "healstaken":
+                    return Data.HealsTaken.ToString();
+                case "damagetaken":
+                    return Data.DamageTaken.ToString();
+                case "powerdrain":
+                    return Data.PowerDamage.ToString();
+                case "powerheal":
+                    return Data.PowerReplenish.ToString();
+                case "kills":
+                    return Data.Kills.ToString();
+                case "deaths":
+                    return Data.Deaths.ToString();
+                case "damage%":
+                    return Data.DamagePercent;
+                case "healed%":
+                    return Data.HealedPercent;
+                case "threatstr":
+                    return Data.GetThreatStr("Threat (Out)");
+                case "threatdelta":
+                    return Data.GetThreatDelta("Threat (Out)").ToString();
+                case "n":
+                    return "\n";
+                case "t":
+                    return "\t";
+
+                default:
+                    return VarName;
+            }
+        }
+        private string GetAttackTypeSwingType(AttackType Data)
+        {
+            int swingType = 100;
+            List<int> swingTypes = new List<int>();
+            List<MasterSwing> cachedItems = new List<MasterSwing>(Data.Items);
+            for (int i = 0; i < cachedItems.Count; i++)
+            {
+                MasterSwing s = cachedItems[i];
+                if (swingTypes.Contains(s.SwingType) == false)
+                    swingTypes.Add(s.SwingType);
+            }
+            if (swingTypes.Count == 1)
+                swingType = swingTypes[0];
+
+            return swingType.ToString();
+        }
+        private string GetDamageTypeGrouping(DamageTypeData Data)
+        {
+            string grouping = string.Empty;
+
+            int swingTypeIndex = 0;
+            if (Data.Outgoing)
+            {
+                grouping += "attacker=" + Data.Parent.Name;
+                foreach (KeyValuePair<int, List<string>> links in CombatantData.SwingTypeToDamageTypeDataLinksOutgoing)
+                {
+                    foreach (string damageTypeLabel in links.Value)
+                    {
+                        if (Data.Type == damageTypeLabel)
+                        {
+                            grouping += String.Format("&swingtype{0}={1}", swingTypeIndex++ == 0 ? string.Empty : swingTypeIndex.ToString(), links.Key);
+                        }
+                    }
+                }
+            }
+            else
+            {
+                grouping += "victim=" + Data.Parent.Name;
+                foreach (KeyValuePair<int, List<string>> links in CombatantData.SwingTypeToDamageTypeDataLinksIncoming)
+                {
+                    foreach (string damageTypeLabel in links.Value)
+                    {
+                        if (Data.Type == damageTypeLabel)
+                        {
+                            grouping += String.Format("&swingtype{0}={1}", swingTypeIndex++ == 0 ? string.Empty : swingTypeIndex.ToString(), links.Key);
+                        }
+                    }
+                }
+            }
+
+            return grouping;
+        }
     }
 }
-
