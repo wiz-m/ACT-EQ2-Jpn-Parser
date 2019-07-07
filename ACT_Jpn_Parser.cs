@@ -1,4 +1,4 @@
-// #define DEBUG_FILE_OUTPUT
+//#define DEBUG_FILE_OUTPUT
 
 using System;
 using System.Collections.Generic;
@@ -17,16 +17,14 @@ using System.Threading;
 [assembly: AssemblyTitle("Japanese Parsing Engine")]
 [assembly: AssemblyDescription("Plugin based parsing Japanese EQ2 Sebilis server running the Japanese client")]
 [assembly: AssemblyCompany("Gardin of Sebillis and Tzalik of Sebillis and Mayia of Sebilis")]
-[assembly: AssemblyVersion("1.0.2.2")]
+[assembly: AssemblyVersion("1.0.2.3")]
 
 // NOTE: このpluginは、Tzalik様が公開していたpluginを元に改造したものです。（元バージョン配布サイト様：https://sites.google.com/site/eq2actjpn/home）
-// NOTE: ヒーラーの皆様お待たせいたしました。まだ拾えていなかったヒールが（ほぼ）全て拾えるようになりました。
-// NOTE: 今まで拾えていなかった、パワー吸収（Power Drain）に対応いたしました。
-// NOTE: 自PC以外のAuto-Attackが攻撃属性ごとに集計されていなかった問題に対応いたしました。
-// NOTE: 解析者向け（＝自分用）に「pluginで解析できなかったログをファイルに出力する」隠し機能を作成。ファイルの１行目の // を外すと利用可能。この説明でよく判らない人は使わないで下さいね。
+// NOTE: レジェンダリ／フェイブルドクリティカルに（とりあえず）対応しました。
+// NOTE: 解析者向け（＝自分用）に「pluginで解析できなかったログをファイルに出力する」隠し機能搭載。ファイルの１行目の // を外すと利用可能。
 ////////////////////////////////////////////////////////////////////////////////
-// $Date: 2014-10-06 21:17:15 +0900 (2014/10/06 (月)) $
-// $Rev: 13 $
+// $Date: 2014-11-15 16:18:11 +0900 (2014/11/15 (土)) $
+// $Rev: 14 $
 ////////////////////////////////////////////////////////////////////////////////
 namespace ACT_Plugin
 {
@@ -213,12 +211,12 @@ namespace ACT_Plugin
             if (dcIndex != -1)
             {
                 // Add our own node to the Data Correction node
-                optionsNode = ActGlobals.oFormActMain.OptionsTreeView.Nodes[dcIndex].Nodes.Add("EQ2 English Settings");
+                optionsNode = ActGlobals.oFormActMain.OptionsTreeView.Nodes[dcIndex].Nodes.Add("EQ2 Japanese Settings");
                 // Register our user control(this) to our newly create node path.  All controls added to the list will be laid out left to right, top to bottom
-                ActGlobals.oFormActMain.OptionsControlSets.Add(@"Data Correction\EQ2 English Settings", new List<Control> { this });
+                ActGlobals.oFormActMain.OptionsControlSets.Add(@"Data Correction\EQ2 Japanese Settings", new List<Control> { this });
                 Label lblConfig = new Label();
                 lblConfig.AutoSize = true;
-                lblConfig.Text = "Option タブの Data Correction セクションの EQ2 English Settings にてオプション設定ができます。";
+                lblConfig.Text = "Option タブの Data Correction セクションの EQ2 Japanese Settings にてオプション設定ができます。";
                 pluginScreenSpace.Controls.Add(lblConfig);
             }
 
@@ -243,7 +241,7 @@ namespace ACT_Plugin
             if (optionsNode != null)    // If we added our user control to the Options tab, remove it
             {
                 optionsNode.Remove();
-                ActGlobals.oFormActMain.OptionsControlSets.Remove(@"Data Correction\EQ2 English Settings");
+                ActGlobals.oFormActMain.OptionsControlSets.Remove(@"Data Correction\EQ2 Japanese Settings");
             }
 
             SaveSettings();
@@ -301,12 +299,12 @@ namespace ACT_Plugin
         {
             regexArray = new Regex[21];
             regexArray[0]  = new Regex(logTimeStampRegexStr + @"(?<victim>.+?)(?:は|が) ?(?:(?<skillType>.+?)による攻撃を受け、)?(?<damageAndType>\d+(?:ポイント)?の.+?)ダメージを負(?:いまし|っ)た。(?:[（(](?<special>.+?)[（)])?", RegexOptions.Compiled);
-            regexArray[1]  = new Regex(logTimeStampRegexStr + @"(?<attacker>あなた)は(?<victim>.+?)に(?<damageAndType>.+?)ダメージを負わせ(?:た|ました)。(?:[（(](?<special>.+?)[）)])?", RegexOptions.Compiled);
+            regexArray[1]  = new Regex(logTimeStampRegexStr + @"(?<attacker>あなた|.+?)(?:は|が)(?<victim>.+?)(?:に|をヒット。)(?<damageAndType>.+?)の?ダメージ(?:を負わせた|を負わせました)?。(?:[（(](?<special>.+?)[）)])?", RegexOptions.Compiled);
             regexArray[2]  = new Regex(logTimeStampRegexStr + @"(?<victim>.+?)(?:が|は) (?<attacker>.+?)(?:の放った|の){1,2}(?<skill>.+?)により(?<damageAndType>\d+(?:ポイントの| +).+?)ダメージを受け(?:た|ました)。(?:[（(](?<special>.+)[）)])?", RegexOptions.Compiled);
             regexArray[3]  = new Regex(logTimeStampRegexStr + @"(?<attacker>.+?)(?:の放った|の){1,2}(?<skill>.+?)により、(?<victim>.+?)(?:が|は)(?<damageAndType>\d+(?:ポイントの| +).+?)ダメージを受け(?:た|ました)。(?:[（(](?<special>.+)[）)])?", RegexOptions.Compiled);
             regexArray[4]  = new Regex(logTimeStampRegexStr + @"(?<attacker>.+?)の(?<skill>.+?)で (?<damageAndType>\d+ポイントの.+?)ダメージを受けましｈ?た。(?:[（(](?<special>.+?)[）)])?", RegexOptions.Compiled);
-            regexArray[5]  = new Regex(logTimeStampRegexStr + @"(?<healer>.+?) *(?:の|は)(?<skill>.+?)(?:が|によって、)(?<victim>.+?)を(?:ヒールしてい(?:ます|る)|回復させました)(?<damage>\d+) ヒットポイントの?(?<crit>クリティカル)?。", RegexOptions.Compiled);
-            regexArray[6]  = new Regex(logTimeStampRegexStr + @"(?<attacker>.+?)(?:が|は *)(?<victim>.+?)を(?<skill>.+?で攻撃|攻撃)(?:。はずした|(?:しましたが|しようとしましたが)、失敗しました)。(?:[（(](?<special>.+?)[）)])?", RegexOptions.Compiled);
+            regexArray[5]  = new Regex(logTimeStampRegexStr + @"(?<healer>.+?) *(?:の|は)(?<skill>.+?)(?:が|によって、)(?<victim>.+?)を(?:ヒールしてい(?:ます|る)|回復させました)(?<damage>\d+) ヒットポイントの?(?<crit>(?:フェイブルド|レジェンダリ)?クリティカル)?。", RegexOptions.Compiled);
+            regexArray[6]  = new Regex(logTimeStampRegexStr + @"(?<attacker>.+?)(?:が|は *)(?<victim>.+?)を(?<skill>.+?で攻撃|攻撃|ヒット)(?:。はずした|(?:しましたが|しようとしましたが)、失敗しました)。(?:[（(](?<special>.+?)[）)])?", RegexOptions.Compiled);
             regexArray[7]  = new Regex(logTimeStampRegexStr + @"(?<attacker>.+?)(?:が|は)(?<victim>.+?)を攻撃(?:。|しましたが、)(?<why>.+?)(?:がうまく妨害|によって妨げられま|はうまくかわしま)した。(?:[（(].*(?<special>ブロック|反撃|回避|受け流し|レジスト|反射|強打|カウンター).*[）)])?", RegexOptions.Compiled);
             regexArray[8]  = new Regex(logTimeStampRegexStr + @"(?<attacker>.+?)(?:が|は){1}(?<victim>.+?)を(?<skill>.+?)で攻撃(?:しましたが、|。)(?<why>.+?)(?:がうまく妨害|によって妨げられま|はうまくかわしま)した。(?:[（(].*(?<special>ブロック|反撃|回避|受け流し|レジスト|反射|強打|カウンター).*[）)])?", RegexOptions.Compiled);
             regexArray[9]  = new Regex(logTimeStampRegexStr + @"(?<victim>.+?)を倒した。", RegexOptions.Compiled);
@@ -316,13 +314,12 @@ namespace ACT_Plugin
             regexArray[11] = new Regex(logTimeStampRegexStr + @"(?<attacker>.+?)に殺された……。", RegexOptions.Compiled);
             regexArray[12] = new Regex(logTimeStampRegexStr + @"Unknown command: 'act (.+)'", RegexOptions.Compiled);
             regexArray[13] = new Regex(logTimeStampRegexStr + @"(?<attacker>.+?)が(?<victim>.+?)?(?:を攻撃し|に命中し|攻撃を受け)、(?:ポイントパワーを)?(?<damage>\d+)ポイント(?:パワーを)?消耗(?:させ|し)(?:た|ました)。(?:[（(](?<special>.+?)[）)])?", RegexOptions.Compiled);
-            regexArray[14] = new Regex(logTimeStampRegexStr + @"(?:(?<attacker>[^\\].+?)の)?(?<skill>.+?) (?:で|が|により)(?<victim>.+?)?(?:を攻撃し|に命中し|攻撃を受け)、(?:ポイントパワーを)?(?<damage>\d+)ポイント(?:パワーを)?消耗(?:させ|し)(?:た|ました)。(?:[（(](?<special>.+?)[）)])?", RegexOptions.Compiled);
-
+            regexArray[14] = new Regex(logTimeStampRegexStr + @"(?:(?<attacker>[^\\].+?)の)?(?<skill>.+?) ?(?:で|が|により)(?<victim>.+?)?(?:を攻撃し|に命中し|攻撃を受け)、(?:ポイントパワーを)?(?<damage>\d+)ポイント(?:パワーを)?消耗(?:させ|し)(?:た|ました)。?(?:[（(](?<special>.+?)[）)])?", RegexOptions.Compiled);
             regexArray[15] = new Regex(logTimeStampRegexStr + @"(?<victim>.+)に対する(?<damage>\d+) ポイントダメージを(?<attacker>あなた|.+?)の ?(?<skillType>.+?)が吸収した。", RegexOptions.Compiled);
             regexArray[16] = new Regex(logTimeStampRegexStr + @"(?<skill>.+)は(?<damage>\d+) ポイントのダメージを吸収し、(?<victim>.+?)へのダメージを防いだ(?:。)?", RegexOptions.Compiled);
             regexArray[17] = new Regex(logTimeStampRegexStr + @"You have entered (?<zone>.+?)\.", RegexOptions.Compiled);
-            regexArray[18] = new Regex(logTimeStampRegexStr + @"(?<healer>.+?)(?:が|は|の)(?<skill>.+?)(?:が|で|によって) ?(?<victim>.+?)をリフレッシュしてい(?:る|ます)(?<damage>\d+) マナポイント(?:の)?(?<special>クリティカル)?。", RegexOptions.Compiled);
-            regexArray[19] = new Regex(logTimeStampRegexStr + @"(?:(?<owner>.+|あなた)の)? *(?<skillType>.+?)(?:が|で) *(?<victim>.+?)に対する(?<target>.*)のヘイト(?:順位)?を *(?<direction>増加|減少) *(?<damage>\d+) *(?<dirType>脅威レベル|position)の?(?<crit>クリティカル)?。", RegexOptions.Compiled);
+            regexArray[18] = new Regex(logTimeStampRegexStr + @"(?<healer>.+?)(?:が|は|の)(?<skill>.+?)(?:が|で|によって) ?(?<victim>.+?)をリフレッシュしてい(?:る|ます)(?<damage>\d+) マナポイント(?:の)?(?<special>(?:フェイブルド|レジェンダリ)?クリティカル)?。", RegexOptions.Compiled);
+            regexArray[19] = new Regex(logTimeStampRegexStr + @"(?:(?<owner>.+|あなた)の)? *(?<skillType>.+?)(?:が|で) *(?<victim>.+?)に対する(?<target>.*)のヘイト(?:順位)?を *(?<direction>増加|減少) *(?<damage>\d+) *(?<dirType>脅威レベル|position)の?(?<crit>(?:フェイブルド|レジェンダリ)?クリティカル)?。", RegexOptions.Compiled);
             regexArray[20] = new Regex(logTimeStampRegexStr + @"(?<attacker>.+?|あなた)の(?<skillType>.+?)が (?:(?<victim>.+?|あなた))の(?<affliction>.+?)を(?<action>ディスペル|治療)しました。", RegexOptions.Compiled);
         }
         void oFormActMain_BeforeLogLineRead(bool isImport, LogLineEventArgs logInfo)
@@ -509,6 +506,8 @@ namespace ACT_Plugin
                 special = special.Replace("クリティカル・", string.Empty).Trim();
                 special = special.Replace("クリティカルヒット", string.Empty).Trim();
                 special = special.Replace("クリティカル", string.Empty).Trim();
+                special = special.Replace("レジェンダリ ", string.Empty).Trim();
+                special = special.Replace("フェイブルド ", string.Empty).Trim();
                 if(special.Trim() == ""){
                     special = "None";
                 }
@@ -531,6 +530,8 @@ namespace ACT_Plugin
                 special = special.Replace("クリティカル・", string.Empty).Trim();
                 special = special.Replace("クリティカルヒット", string.Empty).Trim();
                 special = special.Replace("クリティカル", string.Empty).Trim();
+                special = special.Replace("レジェンダリ ", string.Empty).Trim();
+                special = special.Replace("フェイブルド ", string.Empty).Trim();
                 if(special.Trim() == ""){
                     special = "None";
                 }
@@ -558,6 +559,8 @@ namespace ACT_Plugin
                 special = special.Replace("クリティカル・", string.Empty).Trim();
                 special = special.Replace("クリティカルヒット", string.Empty).Trim();
                 special = special.Replace("クリティカル", string.Empty).Trim();
+                special = special.Replace("レジェンダリ ", string.Empty).Trim();
+                special = special.Replace("フェイブルド ", string.Empty).Trim();
                 if(special.Trim() == ""){
                     special = "None";
                 }
@@ -584,6 +587,8 @@ namespace ACT_Plugin
                 special = special.Replace("クリティカル・", string.Empty).Trim();
                 special = special.Replace("クリティカルヒット", string.Empty).Trim();
                 special = special.Replace("クリティカル", string.Empty).Trim();
+                special = special.Replace("レジェンダリ ", string.Empty).Trim();
+                special = special.Replace("フェイブルド ", string.Empty).Trim();
                 if(special.Trim() == ""){
                     special = "None";
                 }
@@ -613,7 +618,7 @@ namespace ACT_Plugin
                 damage = rE.Replace(logLine, "$4");
                 special = rE.Replace(logLine, "$5");
                 // クリティカル
-                if (special == "クリティカル")
+                if (special.Contains("クリティカル"))
                 {
                     critical = true;
                 }
@@ -888,7 +893,7 @@ namespace ACT_Plugin
                 swingType = (int)SwingTypeEnum.PowerHealing;
                 damageType = "Power";
                 // クリティカル
-                if (special == "クリティカル")
+                if (special.Contains("クリティカル"))
                 {
                     critical = true;
                 }
@@ -919,7 +924,7 @@ namespace ACT_Plugin
                 isSelfAttack = true;
 
                 bool increase = (direction == "増加");
-                critical = (special == "クリティカル");
+                critical = special.Contains("クリティカル");
                 special = "None";
 
                 Dnum dDamage;
