@@ -17,15 +17,16 @@ using System.Threading;
 [assembly: AssemblyTitle("Japanese Parsing Engine")]
 [assembly: AssemblyDescription("Plugin based parsing Japanese EQ2 Sebilis server running the Japanese client")]
 [assembly: AssemblyCompany("Gardin of Sebillis and Tzalik of Sebillis and Mayia of Sebilis")]
-[assembly: AssemblyVersion("1.0.2.5")]
+[assembly: AssemblyVersion("1.0.2.6")]
 
 // NOTE: このpluginは、Tzalik様が公開していたpluginを元に改造したものです。（元バージョン配布サイト様：https://sites.google.com/site/eq2actjpn/home）
 // NOTE: レジェンダリ以上のクリティカルに（とりあえず）対応しました。EN-JP版と同様に"special"欄に表示されます。
 // NOTE: 一部ペットのダメージを召喚主とは別にカウントしていた問題に対処いたしました。（まだ残ってたらごめんなさい）
+// NOTE: ログ内で日本語と英語が併記されている箇所の解析ロジックを修正いたしました。
 // NOTE: 解析者向け（＝自分用）に「pluginで解析できなかったログをファイルに出力する」隠し機能搭載。ファイルの１行目の // を外すと利用可能。
 ////////////////////////////////////////////////////////////////////////////////
-// $Date: 2014-11-24 17:43:35 +0900 (2014/11/24 (月)) $
-// $Rev: 17 $
+// $Date: 2014-12-07 15:01:44 +0900 (2014/12/07 (日)) $
+// $Rev: 18 $
 ////////////////////////////////////////////////////////////////////////////////
 namespace ACT_Plugin
 {
@@ -291,7 +292,7 @@ namespace ACT_Plugin
         //Regex petSplit = new Regex(@"(?<petName>\w* ?)<(?<attacker>\w+)['?の](?<s>s?) (?<petClass>.+)>", RegexOptions.Compiled);
         Regex petSplit = new Regex(@"(?<attacker>\w+)(?:'s|の) ?(?<petName>.+)", RegexOptions.Compiled);
         //Regex engKillSplit = new Regex("(?<mob>.+?) in .+", RegexOptions.Compiled);
-        Regex romanjiSplit = new Regex(@"\\r[iapsm]:(?<katakana>.+?)\\:(?<romanji>.+)\\/r", RegexOptions.Compiled);
+        Regex romanjiSplit = new Regex(@"\\r[iapsmq]:(?<katakana>.+?)\\::?(?<romanji>.+)\\/r", RegexOptions.Compiled);
         Regex regexConsider = new Regex(logTimeStampRegexStr + @".+?You consider (?<player>.+?)\.\.\. .+", RegexOptions.Compiled);
         Regex regexWhogroup = new Regex(logTimeStampRegexStr + @"(?<name>[^ ]+) Lvl \d+ .+", RegexOptions.Compiled);
         Regex regexWhoraid = new Regex(logTimeStampRegexStr + @"\[\d+ [^\]]+\] (?<name>[^ ]+) \([^\)]+\)", RegexOptions.Compiled);
@@ -1108,6 +1109,8 @@ namespace ACT_Plugin
             transTarget = transTarget.Replace("\\rp:","");
             transTarget = transTarget.Replace("\\rm:","");
             transTarget = transTarget.Replace("\\rs:","");
+            transTarget = transTarget.Replace("\\rq:","");
+            transTarget = transTarget.Replace("\\::",":");
             transTarget = transTarget.Replace("\\:",":");
             transTarget = transTarget.Replace("\\/r",":");
             
