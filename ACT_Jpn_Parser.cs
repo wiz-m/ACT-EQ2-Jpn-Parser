@@ -17,16 +17,15 @@ using System.Threading;
 [assembly: AssemblyTitle("Japanese Parsing Engine")]
 [assembly: AssemblyDescription("Plugin based parsing Japanese EQ2 Sebilis server running the Japanese client")]
 [assembly: AssemblyCompany("Gardin of Sebillis and Tzalik of Sebillis and Mayia of Sebilis")]
-[assembly: AssemblyVersion("1.0.2.6")]
+[assembly: AssemblyVersion("1.0.2.7")]
 
 // NOTE: このpluginは、Tzalik様が公開していたpluginを元に改造したものです。（元バージョン配布サイト様：https://sites.google.com/site/eq2actjpn/home）
-// NOTE: レジェンダリ以上のクリティカルに（とりあえず）対応しました。EN-JP版と同様に"special"欄に表示されます。
-// NOTE: 一部ペットのダメージを召喚主とは別にカウントしていた問題に対処いたしました。（まだ残ってたらごめんなさい）
-// NOTE: ログ内で日本語と英語が併記されている箇所の解析ロジックを修正いたしました。
-// NOTE: 解析者向け（＝自分用）に「pluginで解析できなかったログをファイルに出力する」隠し機能搭載。ファイルの１行目の // を外すと利用可能。
+// NOTE: 解析者向け（＝自分用）に「pluginで解析できなかったログをファイルに出力する」隠し機能を搭載しております。ファイルの１行目の // を外すと利用可能。
+// NOTE: レジェンダリ以上のクリティカルは、表示のみ対応しています。（"special"欄に表示されます）
+// NOTE: 一部アーツ（マナドレイン系）の解析がうまくできていなかった不具合を修正いたしました。
 ////////////////////////////////////////////////////////////////////////////////
-// $Date: 2014-12-07 15:01:44 +0900 (2014/12/07 (日)) $
-// $Rev: 18 $
+// $Date: 2014-12-14 17:10:31 +0900 (2014/12/14 (日)) $
+// $Rev: 19 $
 ////////////////////////////////////////////////////////////////////////////////
 namespace ACT_Plugin
 {
@@ -316,8 +315,8 @@ namespace ACT_Plugin
             regexArray[10] = new Regex(logTimeStampRegexStr + @"(?<victim>.+?)が(?<attacker>.+?)(?:(?:の|'s ?).+?)?に殺された……。", RegexOptions.Compiled);
             regexArray[11] = new Regex(logTimeStampRegexStr + @"(?<attacker>.+?)に殺された……。", RegexOptions.Compiled);
             regexArray[12] = new Regex(logTimeStampRegexStr + @"Unknown command: 'act (.+)'", RegexOptions.Compiled);
-            regexArray[13] = new Regex(logTimeStampRegexStr + @"(?<attacker>.+?)が(?<victim>.+?)?(?:を攻撃し|に命中し|攻撃を受け)、(?:ポイントパワーを)?(?<damage>\d+)ポイント(?:パワーを)?消耗(?:させ|し)(?:た|ました)。(?:[（(](?<special>.+?)[）)])?", RegexOptions.Compiled);
-            regexArray[14] = new Regex(logTimeStampRegexStr + @"(?:(?<attacker>[^\\].+?)の)?(?<skill>.+?) ?(?:で|が|により)(?<victim>.+?)?(?:を攻撃し|に命中し|にヒットし|攻撃を受け)、(?:ポイントパワーを)?(?<damage>\d+)ポイント(?:パワーを)?消耗(?:させ|し)(?:た|ました)。?(?:[（(](?<special>.+?)[）)])?", RegexOptions.Compiled);
+            regexArray[13] = new Regex(logTimeStampRegexStr + @"(?:(?<attacker>[^\\].+?)(?:が|の))?(?:(?<skill>.+?) ?(?:で|が|により))?(?<victim>.+?)?(?:を攻撃し|に命中し|にヒットし|攻撃を受け)、(?:ポイントパワーを)?(?<damage>\d+)ポイント(?:パワーを)?消耗(?:させ|し)(?:た|ました)。?(?:[（(](?<special>.+?)[）)])?", RegexOptions.Compiled);
+            regexArray[14] = new Regex(logTimeStampRegexStr + @"(?<victim>.+?)は(?<skill>.+?) ?によ(?:って|り)ポイントパワーを(?<damage>\d+)(?:ポイント)?消耗し(?:た|ました)。(?:[（(](?<special>.+?)[）)])?", RegexOptions.Compiled);
             regexArray[15] = new Regex(logTimeStampRegexStr + @"(?<victim>.+)に対する(?<damage>\d+) ?ポイントダメージを(?<attacker>あなた|.+?)(?:の|'s) ?(?<skillType>.+?)が吸収した。", RegexOptions.Compiled);
             regexArray[16] = new Regex(logTimeStampRegexStr + @"(?<skill>.+)は(?<damage>\d+) ?ポイントのダメージを吸収し、(?<victim>.+?)へのダメージを防いだ(?:。)?", RegexOptions.Compiled);
             regexArray[17] = new Regex(logTimeStampRegexStr + @"You have entered (?<zone>.+?)\.", RegexOptions.Compiled);
@@ -772,44 +771,13 @@ namespace ACT_Plugin
                 break;
             #endregion
             #region Case 13 [act commands]
-            case 13:
+	    case 13:
                 branchFlag = NONE_DAMAGE;
                 ActGlobals.oFormActMain.ActCommands(rE.Replace(logLine, "$1"));
                 break;
             #endregion
             #region Case 14 [power drain 1]
             case 14:
-                branchFlag = SKIP_DAMAGE;
-                attacker = rE.Replace(logLine, "$1");
-                skillType = "不明";
-                victim = rE.Replace(logLine, "$2");
-                damage = rE.Replace(logLine, "$3");
-                crit = rE.Replace(logLine, "$4");
-                special = "None";
-                swingType = (int)SwingTypeEnum.PowerDrain;
-                isSelfAttack = true;
-
-                if (attacker.Length == 0) {
-                    attacker = "あなた";
-                }
-                if (victim.Length == 0) {
-                    victim = "あなた";
-                }
-
-                if (ActGlobals.oFormActMain.SetEncounter(time, attacker, victim)) {
-                    if (CheckWardedHit(victim, time)) {
-                        addCombatInDamage = new Dnum(Int32.Parse(damage) + lastWardAmount, String.Format("{0}/{1}", lastWardAmount, damage));
-                        damageType = "warded/non-melee";
-                        lastWardAmount = 0;
-                    } else {
-                        addCombatInDamage = Int32.Parse(damage);
-                        damageType = "non-melee";
-                    }
-                }
-                break;
-            #endregion
-            #region Case 15 [power drain 2]
-            case 15:
                 branchFlag = SKIP_DAMAGE;
                 attacker = rE.Replace(logLine, "$1");
                 skillType = rE.Replace(logLine, "$2");
@@ -826,7 +794,34 @@ namespace ACT_Plugin
                 if (victim.Length == 0) {
                     victim = "あなた";
                 }
+                if (skillType.Length == 0) {
+                    skillType = "攻撃";
+                }
                 
+                if (ActGlobals.oFormActMain.SetEncounter(time, attacker, victim)) {
+                    if (CheckWardedHit(victim, time)) {
+                        addCombatInDamage = new Dnum(Int32.Parse(damage) + lastWardAmount, String.Format("{0}/{1}", lastWardAmount, damage));
+                        damageType = "warded/non-melee";
+                        lastWardAmount = 0;
+                    } else {
+                        addCombatInDamage = Int32.Parse(damage);
+                        damageType = "non-melee";
+                    }
+                }
+                break;
+            #endregion
+            #region Case 15 [power drain 2]
+            case 15:
+                branchFlag = SKIP_DAMAGE;
+                attacker = "不明";
+                victim = rE.Replace(logLine, "$1");
+                skillType = rE.Replace(logLine, "$2");
+                damage = rE.Replace(logLine, "$3");
+                crit = rE.Replace(logLine, "$4");
+                special = "None";
+                swingType = (int)SwingTypeEnum.PowerDrain;
+                isSelfAttack = true;
+
                 if (ActGlobals.oFormActMain.SetEncounter(time, attacker, victim)) {
                     if (CheckWardedHit(victim, time)) {
                         addCombatInDamage = new Dnum(Int32.Parse(damage) + lastWardAmount, String.Format("{0}/{1}", lastWardAmount, damage));
