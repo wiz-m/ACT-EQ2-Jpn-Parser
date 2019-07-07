@@ -17,15 +17,15 @@ using System.Threading;
 [assembly: AssemblyTitle("Japanese Parsing Engine")]
 [assembly: AssemblyDescription("Plugin based parsing Japanese EQ2 Sebilis server running the Japanese client")]
 [assembly: AssemblyCompany("Gardin of Sebillis and Tzalik of Sebillis and Mayia of Sebilis")]
-[assembly: AssemblyVersion("1.0.2.7")]
+[assembly: AssemblyVersion("1.0.2.8")]
 
 // NOTE: このpluginは、Tzalik様が公開していたpluginを元に改造したものです。（元バージョン配布サイト様：https://sites.google.com/site/eq2actjpn/home）
 // NOTE: 解析者向け（＝自分用）に「pluginで解析できなかったログをファイルに出力する」隠し機能を搭載しております。ファイルの１行目の // を外すと利用可能。
 // NOTE: レジェンダリ以上のクリティカルは、表示のみ対応しています。（"special"欄に表示されます）
-// NOTE: 一部アーツ（マナドレイン系）の解析がうまくできていなかった不具合を修正いたしました。
+// NOTE: チャネラーのログがうまく取り込めていなかった問題に対応いたしました。（まだあるかも・・・）
 ////////////////////////////////////////////////////////////////////////////////
-// $Date: 2014-12-14 17:10:31 +0900 (2014/12/14 (日)) $
-// $Rev: 19 $
+// $Date: 2014-12-30 21:55:20 +0900 (2014/12/30 (火)) $
+// $Rev: 20 $
 ////////////////////////////////////////////////////////////////////////////////
 namespace ACT_Plugin
 {
@@ -299,13 +299,13 @@ namespace ACT_Plugin
 
         private void PopulateRegexArray()
         {
-            regexArray = new Regex[21];
+            regexArray = new Regex[22];
             regexArray[0]  = new Regex(logTimeStampRegexStr + @"(?<victim>.+?)(?:は|が) ?(?:(?<skillType>.+?)による攻撃を受け、)?(?<damageAndType>\d+(?:ポイント)?の.+?)ダメージを負(?:いまし|っ)た。(?:[（(](?<special>.+?)[（)])?", RegexOptions.Compiled);
             regexArray[1]  = new Regex(logTimeStampRegexStr + @"(?<attacker>あなた|.+?)(?:は|が)(?<victim>.+?)(?:に ?|をヒット。)(?<damageAndType>.+?)の?ダメージ(?:を負わせた|を負わせました)?。(?:[（(](?<special>.+?)[）)])?", RegexOptions.Compiled);
             regexArray[2]  = new Regex(logTimeStampRegexStr + @"(?<victim>.+?)(?:が|は) ?(?<attacker>.+?)(?:の放った|の|'s ?)(?<skill>.+?)により(?<damageAndType>\d+(?:ポイントの| +).+?)ダメージを受け(?:た|ました)。(?:[（(](?<special>.+)[）)])?", RegexOptions.Compiled);
             regexArray[3]  = new Regex(logTimeStampRegexStr + @"(?<attacker>.+?)(?:の放った|の|'s ?)(?<skill>.+?)により、(?<victim>.+?)(?:が|は)(?<damageAndType>\d+(?:ポイントの| +).+?)ダメージを受け(?:た|ました)。(?:[（(](?<special>.+)[）)])?", RegexOptions.Compiled);
             regexArray[4]  = new Regex(logTimeStampRegexStr + @"(?<attacker>.+?)(?:の|'s ?)(?<skill>.+?)で ?(?<damageAndType>\d+ポイントの.+?)ダメージを受けましｈ?た。(?:[（(](?<special>.+?)[）)])?", RegexOptions.Compiled);
-            regexArray[5]  = new Regex(logTimeStampRegexStr + @"(?<healer>.+?) ?(?:の|は|'s ?)(?<skill>.+?)(?:が|によって、)(?<victim>.+?)を(?:ヒールしてい(?:ます|る)|回復させました)(?<damage>\d+) ?ヒットポイントの?(?<crit>(?:フェイブルド|レジェンダリ|ミシカル)?クリティカル)?。", RegexOptions.Compiled);
+            regexArray[5]  = new Regex(logTimeStampRegexStr + @"(?<healer>.+?) ?(?:の|は|'s ?)(?<skill>.+)(?:が|によって、)(?<victim>.+?)を(?:(?:ヒール|修復|リペア)してい(?:ます|る)|回復させました)(?<damage>\d+) ?ヒットポイントの?(?<crit>(?:フェイブルド|レジェンダリ|ミシカル)?クリティカル)?。", RegexOptions.Compiled);
             regexArray[6]  = new Regex(logTimeStampRegexStr + @"(?<attacker>.+?)(?:が|は ?)(?<victim>.+?)を(?<skill>.+?で攻撃|攻撃|ヒット)(?:。はずした|(?:しましたが|しようとしましたが)、失敗しました)。(?:[（(](?<special>.+?)[）)])?", RegexOptions.Compiled);
             regexArray[7]  = new Regex(logTimeStampRegexStr + @"(?<attacker>.+?)(?:が|は)(?<victim>.+?)を攻撃(?:。|しましたが、)(?<why>.+?)(?:がうまく妨害|によって妨げられま|はうまくかわしま)した。(?:[（(].*(?<special>ブロック|反撃|回避|受け流し|レジスト|反射|強打|カウンター).*[）)])?", RegexOptions.Compiled);
             regexArray[8]  = new Regex(logTimeStampRegexStr + @"(?<attacker>.+?)(?:が|は){1}(?<victim>.+?)を(?<skill>.+?)で攻撃(?:しましたが、|。)(?<why>.+?)(?:がうまく妨害|によって妨げられま|はうまくかわしま)した。(?:[（(].*(?<special>ブロック|反撃|回避|受け流し|レジスト|反射|強打|カウンター).*[）)])?", RegexOptions.Compiled);
@@ -323,6 +323,7 @@ namespace ACT_Plugin
             regexArray[18] = new Regex(logTimeStampRegexStr + @"(?<healer>.+?)(?:が|は|の|'s ?)(?<skill>.+?)(?:が|で|によって) ?(?<victim>.+?)をリフレッシュしてい(?:る|ます)(?<damage>\d+) ?マナポイント(?:の)?(?<special>(?:フェイブルド|レジェンダリ|ミシカル)?クリティカル)?。", RegexOptions.Compiled);
             regexArray[19] = new Regex(logTimeStampRegexStr + @"(?:(?<owner>.+?|あなた)(?:の|'s))? ?(?<skillType>.+?)(?:が|で) ?(?<victim>.+?)に対する(?<target>.*)のヘイト(?:順位)?を ?(?<direction>増加|減少) ?(?<damage>\d+) ?(?<dirType>脅威レベル|position)の?(?<crit>(?:フェイブルド|レジェンダリ|ミシカル)?クリティカル)?。", RegexOptions.Compiled);
             regexArray[20] = new Regex(logTimeStampRegexStr + @"(?<attacker>.+?|あなた)(?:の|'s) ?(?<skillType>.+?)が ?(?:(?<victim>.+?|あなた))の(?<affliction>.+?)を(?<action>ディスペル|治療)しました。", RegexOptions.Compiled);
+            regexArray[21] = new Regex(logTimeStampRegexStr + @"(?<healer>.+?)[はが] ?(?<attacker>.+?)から(?<victim>.+?)へのダメージを ?(?<damage>\d+) ?減らし(?:まし)?た。", RegexOptions.Compiled);
         }
         void oFormActMain_BeforeLogLineRead(bool isImport, LogLineEventArgs logInfo)
         {
@@ -771,7 +772,7 @@ namespace ACT_Plugin
                 break;
             #endregion
             #region Case 13 [act commands]
-	    case 13:
+        case 13:
                 branchFlag = NONE_DAMAGE;
                 ActGlobals.oFormActMain.ActCommands(rE.Replace(logLine, "$1"));
                 break;
@@ -996,6 +997,24 @@ namespace ACT_Plugin
                     special = attackType;
                     addCombatInDamage = 1;
                     damageType = direction;
+                }
+                break;
+            #endregion
+            #region Case 22 [damage interception]
+                case 22:
+                branchFlag = NONE_DAMAGE;
+                attacker = rE.Replace(logLine, "$1");   // Inteceptor
+                special = rE.Replace(logLine, "$2");    // Attacker
+                victim = rE.Replace(logLine, "$3");     // Target
+                damage = rE.Replace(logLine, "$4");     // Amount
+
+                swingType = (int)SwingTypeEnum.Healing;
+                skillType = "Channeler Pet";
+
+                if (ActGlobals.oFormActMain.SetEncounter(time, attacker, victim)) {
+                    branchFlag = SKIP_DAMAGE;
+                    damageType = "Interception";
+                    addCombatInDamage = Int32.Parse(damage);
                 }
                 break;
             #endregion
