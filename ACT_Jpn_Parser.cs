@@ -13,20 +13,18 @@ using System.Text.RegularExpressions;
 using System.Threading;
 
 [assembly: AssemblyTitle("Japanese Parsing Engine")]
-[assembly: AssemblyDescription("Plugin based parsing Japanese EQ2 Sebillis server running the Japanese client")]
-[assembly: AssemblyCompany("Gardin of Sebillis and Tzalik of Sebillis and Mayia of Sebillis")]
-[assembly: AssemblyVersion("1.0.1.4")]
+[assembly: AssemblyDescription("Plugin based parsing Japanese EQ2 Sebilis server running the Japanese client")]
+[assembly: AssemblyCompany("Gardin of Sebillis and Tzalik of Sebillis and Mayia of Sebilis")]
+[assembly: AssemblyVersion("1.0.2.1")]
 
-// TODO
-// ・このpluginは、Tzalik様が公開していたpluginを修正したものです。
-// 　（元サイト：https://sites.google.com/site/eq2actjpn/home）
-// ・ログフォーマットの変更にあわせて正規表現を修正。だいたい取れているはず。
-// ・ログフォーマットが変わったらヘイトが全く取れなくなりました。
-// ・ペットのkill数を召喚主にカウントするように修正。でもこれで正しいのか？
-///////////////////////////////////////////////////////////
-// $Date: 2014-09-20 23:37:58 +0900 (土, 09 20 2014) $
-// $Rev: 13 $
-///////////////////////////////////////////////////////////
+// NOTE: このpluginは、Tzalik様が公開していたpluginを元に改造したものです。（元バージョン配布サイト様：https://sites.google.com/site/eq2actjpn/home）
+// NOTE: MTおよびSTの皆様、お待たせいたしました！　本バージョンより再びヘイト増減量が取れるようになりました。
+// NOTE: ヒーラーの皆様、お待たせいたしました！　RHも拾えるようになりました。
+// TODO: ACTで拾えるものは（ほぼ）対応済みだと思います。（ですが、どうしても自分だけでは確認しきれません。使用者様のご意見が頼りです・・・）
+////////////////////////////////////////////////////////////////////////////////
+// $Date: 2014-09-28 02:06:49 +0900 (2014/09/28 (日)) $
+// $Rev: 11 $
+////////////////////////////////////////////////////////////////////////////////
 namespace ACT_Plugin
 {
 	public class ACT_Jpn_Parser : UserControl, IActPluginV1
@@ -247,30 +245,29 @@ namespace ACT_Plugin
 
 		private void PopulateRegexArray()
 		{
-			regexArray = new Regex[22];
-			regexArray[0]  = new Regex(logTimeStampRegexStr + @"(?<victim>.+?)が(?<skillType>.+?)による攻撃を受け、(?<damageAndType>\d+ポイントの.+?)ダメージを負った。(?:[（(](?<special>.+?)[（)])?", RegexOptions.Compiled);
+			regexArray = new Regex[20];
+			regexArray[0]  = new Regex(logTimeStampRegexStr + @"(?<victim>.+?)(?:は |が)(?<skillType>.+?)による攻撃を受け、(?<damageAndType>\d+ポイント/の.+?)ダメージを負(?:いまし|っ)た。(?:[（(](?<special>.+?)[（)])?", RegexOptions.Compiled);
 			regexArray[1]  = new Regex(logTimeStampRegexStr + @"(?<attacker>あなた)は(?<victim>.+?)に(?<damageAndType>.+?)ダメージを負わせ(?:た|ました)。(?:[（(](?<special>.+?)[）)])?", RegexOptions.Compiled);
 			regexArray[2]  = new Regex(logTimeStampRegexStr + @"(?<victim>.+?)(?:が|は) (?<attacker>.+?)(?:の放った|の){1,2}(?<skill>.+?)により(?<damageAndType>\d+(?:ポイントの| +).+?)ダメージを受け(?:た|ました)。(?:[（(](?<special>.+)[）)])?", RegexOptions.Compiled);
 			regexArray[3]  = new Regex(logTimeStampRegexStr + @"(?<attacker>.+?)(?:の放った|の){1,2}(?<skill>.+?)により、(?<victim>.+?)(?:が|は)(?<damageAndType>\d+(?:ポイントの| +).+?)ダメージを受け(?:た|ました)。(?:[（(](?<special>.+)[）)])?", RegexOptions.Compiled);
 			regexArray[4]  = new Regex(logTimeStampRegexStr + @"(?<attacker>.+?)の(?<skill>.+?)で (?<damageAndType>\d+ポイントの.+?)ダメージを受けましｈ?た。(?:[（(](?<special>.+?)[）)])?", RegexOptions.Compiled);
-			regexArray[5]  = new Regex(logTimeStampRegexStr + @"(?<healer>.+?) *(?:が|は) *、?(?:自分を)?(?<skill>.+?) *によって(?<victim>.+?)(?: *を)? *(?<damage>\d+) ヒットポイント 回復させ(?:まし)?た。", RegexOptions.Compiled);
-			regexArray[6]  = new Regex(logTimeStampRegexStr + @"(?:(?<healer>.+?|あなた))(?:の|が|は){1}(?<skill>.+?)によって、(?<victim>.+?)を(?<damage>\d+)ヒットポイントクリティカル・ヒールさせました。", RegexOptions.Compiled);
-			regexArray[7]  = new Regex(logTimeStampRegexStr + @"(?<attacker>.+?)(?:が|は *)(?<victim>.+?)を(?<skill>.+?で攻撃|攻撃)(?:。はずした|(?:しましたが|しようとしましたが)、失敗しました)。(?:[（(](?<special>.+?)[）)])?", RegexOptions.Compiled);
-			regexArray[8]  = new Regex(logTimeStampRegexStr + @"(?<attacker>.+?)(?:が|は)(?<victim>.+?)を攻撃(?:。|しましたが、)(?<why>.+?)(?:がうまく妨害|によって妨げられま|はうまくかわしま)した。(?:[（(].*(?<special>ブロック|反撃|回避|受け流し|レジスト|反射|強打|カウンター).*[）)])?", RegexOptions.Compiled);
-			regexArray[9]  = new Regex(logTimeStampRegexStr + @"(?<attacker>.+?)(?:が|は){1}(?<victim>.+?)を(?<skill>.+?)で攻撃(?:しましたが、|。)(?<why>.+?)(?:がうまく妨害|によって妨げられま|はうまくかわしま)した。(?:[（(].*(?<special>ブロック|反撃|回避|受け流し|レジスト|反射|強打|カウンター).*[）)])?", RegexOptions.Compiled);
-			regexArray[10] = new Regex(logTimeStampRegexStr + @"(?<attacker>.+?)は(?<zone>.+?) \((?<xpos>.+?),(?<zpos>.+?),(?<ypos>.+?)\) で(?<victim>.+?)を倒した。", RegexOptions.Compiled);
-			//regexArray[11] = new Regex(logTimeStampRegexStr + @"(?<victim>.+?)が(?<attacker>.+?)に殺された……。", RegexOptions.Compiled);
-			regexArray[11] = new Regex(logTimeStampRegexStr + @"(?<victim>.+?)が(?<attacker>.+?)?(?:の.+?)?に殺された……。", RegexOptions.Compiled);
-			regexArray[12] = new Regex(logTimeStampRegexStr + @"(?<attacker>.+?)に殺された……。", RegexOptions.Compiled);
-			regexArray[13] = new Regex(logTimeStampRegexStr + @"Unknown command: 'act (.+)'", RegexOptions.Compiled);
-			regexArray[14] = new Regex(logTimeStampRegexStr + @"(?<attacker>.+?)の{1,2}(?<skill>.+?)が(?<victim>.+?)(?:を攻撃|に命中)し、(?:ポイントパワーを)?(?<damage>\d+)ポイント(?:パワーを)?消耗(?:させ|し)た。(?:[（(](?<special>.+?)[）)])?", RegexOptions.Compiled);
-			regexArray[15] = new Regex(logTimeStampRegexStr + @"(?<victim>.+)に対する(?<damage>\d+) ポイントダメージを(?<attacker>あなた|.+?)の ?(?<skillType>.+?)が吸収した。", RegexOptions.Compiled);
-			regexArray[16] = new Regex(logTimeStampRegexStr + @"(?<skill>.+)は(?<damage>\d+) ポイントのダメージを吸収し、(?<victim>.+?)へのダメージを防いだ(?:。)?", RegexOptions.Compiled);
-			regexArray[17] = new Regex(logTimeStampRegexStr + @"You have entered (?<zone>.+?)\.", RegexOptions.Compiled);
-			regexArray[18] = new Regex(logTimeStampRegexStr + @"(?<healer>.+?) *が *(?<skill>.+?) *によって(?: |、)(?<victim>.+?)を *(?<damage>\d+) *マナポイント(?<special>クリティカル)?・? *リフレッシュ(?:させ|しまし)た。", RegexOptions.Compiled);
-			regexArray[19] = new Regex(logTimeStampRegexStr + @"(?<healer>あなた)は(?<skill>.+?) *で(?:、自分を)? *(?<damage>\d+) *マナポイント(?<special>クリティカル・)? *リフレッシュ(?:させました|しました)。", RegexOptions.Compiled);
-			regexArray[20] = new Regex(logTimeStampRegexStr + @"(?<owner>.+?|あなた)の *(?<skillType>.+?)(?:が、|は)(?<victim>.+?)に対する(?<target>.*)のヘイト(?:順位)?を (?<damage>\d+) (?<dirType>ヘイト|脅威レベル|position)　+(?<crit>大幅に)?(?<direction>増加|減少)。", RegexOptions.Compiled);
-			regexArray[21] = new Regex(logTimeStampRegexStr + @"(?<attacker>.+?|あなた)の(?<skillType>.+?)が (?:(?<victim>.+?|あなた))の(?<affliction>.+?)を(?<action>ディスペル|治療)しました。", RegexOptions.Compiled);
+			regexArray[5]  = new Regex(logTimeStampRegexStr + @"(?<healer>.+?) *の(?<skill>.+?)が(?<victim>.+?)をヒールしてい(?:ます|る)(?<damage>\d+) ヒットポイントの?(?<crit>クリティカル)?。", RegexOptions.Compiled);
+			regexArray[6]  = new Regex(logTimeStampRegexStr + @"(?<attacker>.+?)(?:が|は *)(?<victim>.+?)を(?<skill>.+?で攻撃|攻撃)(?:。はずした|(?:しましたが|しようとしましたが)、失敗しました)。(?:[（(](?<special>.+?)[）)])?", RegexOptions.Compiled);
+			regexArray[7]  = new Regex(logTimeStampRegexStr + @"(?<attacker>.+?)(?:が|は)(?<victim>.+?)を攻撃(?:。|しましたが、)(?<why>.+?)(?:がうまく妨害|によって妨げられま|はうまくかわしま)した。(?:[（(].*(?<special>ブロック|反撃|回避|受け流し|レジスト|反射|強打|カウンター).*[）)])?", RegexOptions.Compiled);
+			regexArray[8]  = new Regex(logTimeStampRegexStr + @"(?<attacker>.+?)(?:が|は){1}(?<victim>.+?)を(?<skill>.+?)で攻撃(?:しましたが、|。)(?<why>.+?)(?:がうまく妨害|によって妨げられま|はうまくかわしま)した。(?:[（(].*(?<special>ブロック|反撃|回避|受け流し|レジスト|反射|強打|カウンター).*[）)])?", RegexOptions.Compiled);
+			regexArray[9] = new Regex(logTimeStampRegexStr + @"(?<victim>.+?)を倒した。", RegexOptions.Compiled);
+			// NOTE: ペットの撃墜数を（極力）召喚主の手柄としてカウントしています。でもこれは正しい動きなのだろうか？
+			//regexArray[10] = new Regex(logTimeStampRegexStr + @"(?<victim>.+?)が(?<attacker>.+?)に殺された……。", RegexOptions.Compiled);
+			regexArray[10] = new Regex(logTimeStampRegexStr + @"(?<victim>.+?)が(?<attacker>.+?)(?:の.+?)?に殺された……。", RegexOptions.Compiled);
+			regexArray[11] = new Regex(logTimeStampRegexStr + @"(?<attacker>.+?)に殺された……。", RegexOptions.Compiled);
+			regexArray[12] = new Regex(logTimeStampRegexStr + @"Unknown command: 'act (.+)'", RegexOptions.Compiled);
+			regexArray[13] = new Regex(logTimeStampRegexStr + @"(?:(?<attacker>.+?)の{1,2})?(?<skill>.+?)(?:で|が)(?<victim>.+?)?(?:を攻撃|に命中)し、(?<damage>\d+)ポイントのポイントパワーを消耗(?:させ|し)(?:た|ました)。(?:[（(](?<special>.+?)[）)])?", RegexOptions.Compiled);
+			regexArray[14] = new Regex(logTimeStampRegexStr + @"(?<victim>.+)に対する(?<damage>\d+) ポイントダメージを(?<attacker>あなた|.+?)の ?(?<skillType>.+?)が吸収した。", RegexOptions.Compiled);
+			regexArray[15] = new Regex(logTimeStampRegexStr + @"(?<skill>.+)は(?<damage>\d+) ポイントのダメージを吸収し、(?<victim>.+?)へのダメージを防いだ(?:。)?", RegexOptions.Compiled);
+			regexArray[16] = new Regex(logTimeStampRegexStr + @"You have entered (?<zone>.+?)\.", RegexOptions.Compiled);
+			regexArray[17] = new Regex(logTimeStampRegexStr + @"(?<healer>.+?)(?:が|は)(?<skill>.+?)(?:によって|で) (?<victim>.+?)をリフレッシュしています(?<damage>\d+) マナポイント(?:の)?(?<special>クリティカル)?。", RegexOptions.Compiled);
+			regexArray[18] = new Regex(logTimeStampRegexStr + @"(?:(?<owner>.+|あなた)の)? *(?<skillType>.+?)(?:が|で) *(?<victim>.+?)に対する(?<target>.*)のヘイト(?:順位)?を *(?<direction>増加|減少) *(?<damage>\d+) *(?<dirType>脅威レベル|position)の?(?<crit>クリティカル)?。", RegexOptions.Compiled);
+			regexArray[19] = new Regex(logTimeStampRegexStr + @"(?<attacker>.+?|あなた)の(?<skillType>.+?)が (?:(?<victim>.+?|あなた))の(?<affliction>.+?)を(?<action>ディスペル|治療)しました。", RegexOptions.Compiled);
 		}
 		void oFormActMain_BeforeLogLineRead(bool isImport, LogLineEventArgs logInfo)
 		{
@@ -288,19 +285,18 @@ namespace ACT_Plugin
 							logInfo.detectedType = Color.Red.ToArgb();
 							break;
 						case 5:
-						case 6:
 							logInfo.detectedType = Color.Blue.ToArgb();
 							break;
+						case 6:
 						case 7:
 						case 8:
-						case 9:
 							logInfo.detectedType = Color.DarkRed.ToArgb();
 							break;
-						case 14:
+						case 13:
 							logInfo.detectedType = Color.DarkOrchid.ToArgb();
 							break;
+						case 14:
 						case 15:
-						case 16:
 							logInfo.detectedType = Color.DodgerBlue.ToArgb();
 							break;
 						default:
@@ -535,35 +531,22 @@ namespace ACT_Plugin
 				skillType = rE.Replace(logLine, "$2");
 				victim = rE.Replace(logLine, "$3");
 				damage = rE.Replace(logLine, "$4");
+				special = rE.Replace(logLine, "$5");
+				// クリティカル
+				if (special == "クリティカル")
+				{
+					critical = true;
+				}
 				damageType = "Hitpoints";
 				swingType = (int)SwingTypeEnum.Healing;
-				special = "None";
 				if (attacker == "あなた" && logLine.Contains("自分を")) {
 					victim = attacker;
 				}
 				addCombatInDamage = Int32.Parse(damage);
 				break;
 			#endregion
-			#region Case 7 [critical healing]
+			#region Case 7 [misses]
 			case 7:
-				if (!ActGlobals.oFormActMain.InCombat) {
-					branchFlag = NONE_DAMAGE;
-					break;
-				}
-				branchFlag = SKIP_DAMAGE;
-				attacker = rE.Replace(logLine, "$1");
-				skillType = rE.Replace(logLine, "$2");
-				victim = rE.Replace(logLine, "$3");
-				damage = rE.Replace(logLine, "$4");
-				damageType = "Hitpoints";
-				swingType = (int)SwingTypeEnum.Healing;
-				special = "None";
-				addCombatInDamage = Int32.Parse(damage);
-				critical = true;
-				break;
-			#endregion
-			#region Case 8 [misses]
-			case 8:
 				attacker = rE.Replace(logLine, "$1");
 				victim = rE.Replace(logLine, "$2");
 				why = rE.Replace(logLine, "$3");
@@ -585,8 +568,8 @@ namespace ACT_Plugin
 				}
 				break;
 			#endregion
-			#region Case 9 [melee misses by interfer]
-			case 9:
+			#region Case 8 [melee misses by interfer]
+			case 8:
 				attacker = rE.Replace(logLine, "$1");
 				victim = rE.Replace(logLine, "$2");
 				why = rE.Replace(logLine, "$3");
@@ -605,8 +588,8 @@ namespace ACT_Plugin
 				}
 				break;
 			#endregion
-			#region Case 10 [non-melee misses by interfer]
-			case 10:
+			#region Case 9 [non-melee misses by interfer]
+			case 9:
 				attacker = rE.Replace(logLine, "$1");
 				victim = rE.Replace(logLine, "$2");
 				skillType = rE.Replace(logLine, "$3");
@@ -625,19 +608,15 @@ namespace ACT_Plugin
 				}
 				break;
 			#endregion
-			#region Case 11 [killing]
-			case 11:
+			#region Case 10 [killing]
+			case 10:
 				if (!ActGlobals.oFormActMain.InCombat) {
 					branchFlag = NONE_DAMAGE;
 					break;
 				}
 				branchFlag = SKIP_DAMAGE;
-				attacker = rE.Replace(logLine, "$1");
-				string zone = rE.Replace(logLine, "$2");
-				string xpos = rE.Replace(logLine, "$3");
-				string zpos = rE.Replace(logLine, "$4");
-				string ypos = rE.Replace(logLine, "$5");
-				victim = rE.Replace(logLine, "$6");
+				attacker = "あなた";
+				victim = rE.Replace(logLine, "$1");
 				swingType = (int)SwingTypeEnum.NonMelee;
 				ActGlobals.oFormSpellTimers.RemoveTimerMods(victim);
 				ActGlobals.oFormSpellTimers.DispellTimerMods(victim);
@@ -647,8 +626,8 @@ namespace ACT_Plugin
 				damageType = "Death";
 				break;
 			#endregion
-			#region Case 12 [killed]
-			case 12:
+			#region Case 11 [killed]
+			case 11:
 				if (!ActGlobals.oFormActMain.InCombat) {
 					branchFlag = NONE_DAMAGE;
 					break;
@@ -665,8 +644,8 @@ namespace ACT_Plugin
 				damageType = "Death";
 				break;
 			#endregion
-			#region Case 13 [killing yourself]
-			case 13:
+			#region Case 12 [killing yourself]
+			case 12:
 				if (!ActGlobals.oFormActMain.InCombat) {
 					branchFlag = NONE_DAMAGE;
 					break;
@@ -683,14 +662,14 @@ namespace ACT_Plugin
 				damageType = "Death";
 				break;
 			#endregion
-			#region Case 14 [act commands]
-			case 14:
+			#region Case 13 [act commands]
+			case 13:
 				branchFlag = NONE_DAMAGE;
 				ActGlobals.oFormActMain.ActCommands(rE.Replace(logLine, "$1"));
 				break;
 			#endregion
-			#region Case 15 [power drain]
-			case 15:
+			#region Case 14 [power drain]
+			case 14:
 				branchFlag = SKIP_DAMAGE;
 				attacker = rE.Replace(logLine, "$1");
 				skillType = rE.Replace(logLine, "$2");
@@ -714,8 +693,8 @@ namespace ACT_Plugin
 				}
 				break;
 			#endregion
-			#region Case 16 [ward absorbtion]
-			case 16:
+			#region Case 15 [ward absorbtion]
+			case 15:
 				if (!ActGlobals.oFormActMain.InCombat) {
 					branchFlag = NONE_DAMAGE;
 					break;
@@ -739,8 +718,8 @@ namespace ACT_Plugin
 				lastWardTime = time;
 				break;
 			#endregion
-			#region Case 17 [ward absorbtion your spell]
-			case 17:
+			#region Case 16 [ward absorbtion your spell]
+			case 16:
 				if (!ActGlobals.oFormActMain.InCombat) {
 					branchFlag = NONE_DAMAGE;
 					break;
@@ -765,8 +744,8 @@ namespace ACT_Plugin
 				lastWardTime = time;
 				break;
 			#endregion
-			#region Case 18 [zone change]
-			case 18:
+			#region Case 17 [zone change]
+			case 17:
 				branchFlag = NONE_DAMAGE;
 				if (logLine.Contains(" combat by "))
 					break;
@@ -777,8 +756,8 @@ namespace ACT_Plugin
 				ActGlobals.oFormActMain.ChangeZone(zoneName);
 				break;
 			#endregion
-			#region Case 19 [power healing]
-			case 19:
+			#region Case 18 [power healing]
+			case 18:
 				if (!ActGlobals.oFormActMain.InCombat) {
 					branchFlag = NONE_DAMAGE;
 					break;
@@ -801,48 +780,29 @@ namespace ACT_Plugin
 				addCombatInDamage = Int32.Parse(damage);
 				break;
 			#endregion
-			#region case 20 [self power healing]
-			case 20:
-				if (!ActGlobals.oFormActMain.InCombat) {
-					branchFlag = NONE_DAMAGE;
-					break;
-				}
-				branchFlag = SKIP_DAMAGE;
-				attacker = rE.Replace(logLine, "$1");
-				skillType = rE.Replace(logLine, "$2");
-				victim = attacker;
-				damage = rE.Replace(logLine, "$3");
-				special = rE.Replace(logLine, "$4");
-				swingType = (int)SwingTypeEnum.PowerHealing;
-				damageType = "Power";
-				// クリティカル
-				if (special == "クリティカル")
-				{
-					critical = true;
-				}
-				addCombatInDamage = Int32.Parse(damage);
-				break;
-			#endregion
-			#region Case 21 [threat]
-			case 21:
+			#region Case 19 [threat]
+			case 19:
 				branchFlag = NONE_DAMAGE;
 				string owner = rE.Replace(logLine, "$1");
 				skillType = rE.Replace(logLine, "$2");
 				victim = rE.Replace(logLine, "$3");
 				attacker = rE.Replace(logLine, "$4");
-				damage = rE.Replace(logLine, "$5");
-				string dtype = rE.Replace(logLine, "$6");
-				special = rE.Replace(logLine, "$7");
-				string direction = rE.Replace(logLine, "$8");
+				string direction = rE.Replace(logLine, "$5");
+				damage = rE.Replace(logLine, "$6");
+				string dtype = rE.Replace(logLine, "$7");
+				special = rE.Replace(logLine, "$8");
 				swingType = (int)SwingTypeEnum.Threat;
 
-				if (attacker.Contains("相手") || attacker.Contains("あなた")) {
+				if (owner.Length == 0) {
+					owner = "あなた";
+				}
+				if (attacker.Contains("自分")||attacker.Contains("相手")) {
 					attacker = owner;
 				}
 				isSelfAttack = true;
 
 				bool increase = (direction == "増加");
-				critical = (special == "大幅に");
+				critical = (special == "クリティカル");
 				special = "None";
 
 				Dnum dDamage;
@@ -863,8 +823,8 @@ namespace ACT_Plugin
 				}
 				break;
 			#endregion
-			#region Case 22 [dispell/cure]
-			case 22:
+			#region Case 20 [dispell/cure]
+			case 20:
 				branchFlag = NONE_DAMAGE;
 				attacker = rE.Replace(logLine, "$1");
 				skillType = rE.Replace(logLine, "$2");
