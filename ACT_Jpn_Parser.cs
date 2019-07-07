@@ -17,17 +17,15 @@ using System.Globalization;
 [assembly: AssemblyTitle("Japanese(JPN) Parsing Engine")]
 [assembly: AssemblyDescription("Plugin based parsing engine for Japanese EQ2 servers running the Japanese client")]
 [assembly: AssemblyCompany("Mayia of Sebilis")]
-[assembly: AssemblyVersion("1.1.0.3")]
+[assembly: AssemblyVersion("1.1.0.4")]
 
 // NOTE: このpluginは、ACT公式のEn-Jp_ParserのVer.1.1.1.9を元に、日本語環境のままで使用できるように改造したものです。ほぼ全ての機能を取り込んでいると思います。
 // NOTE: 解析者向け（＝自分用）に「pluginで解析できなかったログをファイルに出力する」隠し機能を搭載しております。ファイルの１行目の // を外すと利用可能。
 // NOTE: Obanburumai様のご協力により、EQ2側のバグによりアーツ名の直後で改行されていて取り込めなかったアーツ（ラッキー・ギャンビット、ワイルド・アクリーション、他にもあるかも？）を取得できるようにしております。（2015/01現在、JPNプラグイン固有の機能です）
-// NOTE: 【不具合修正】（おそらく）PvP時、アーツによる被ダメージの一部が取得できない問題に対応しました。
-// NOTE: 【不具合修正】敵のパワーを下げる攻撃の一部が取得できない問題に対応しました。
-// NOTE: 【仕様変更】「復活の後遺症」によるパワー減少を取得しないようにしました。
+// NOTE: 【不具合修正】「マーセナリー・スタンド」が、アーツではなくキャラクターとしてカウントされてしまう現象を修正しました。
 ////////////////////////////////////////////////////////////////////////////////
-// $Date: 2015-06-21 15:15:30 +0900 (2015/06/21 (日)) $
-// $Rev: 29 $
+// $Date: 2015-10-16 15:27:42 +0900 (2015/10/16 (金)) $
+// $Rev: 31 $
 ////////////////////////////////////////////////////////////////////////////////
 namespace ACT_Plugin
 {
@@ -353,7 +351,7 @@ namespace ACT_Plugin
             regexArray[17] = new Regex(logTimeStampRegexStr + @"(?<skill>.+)は ?(?<damage>\d+) ?ポイントのダメージを吸収し、(?<victim>.+?)へのダメージを防いだ(?:。)?", RegexOptions.Compiled);
             regexArray[18] = new Regex(logTimeStampRegexStr + @"You have entered (?<zone>.+?)\.", RegexOptions.Compiled);
             regexArray[19] = new Regex(logTimeStampRegexStr + @"(?<healer>.+?)(?:が|は|の|'s) ?(?<skill>.+?)(?:が|で|によって) ?(?<victim>.+?)をリフレッシュしてい(?:る|ます)(?<damage>\d+) ?マナポイント(?:の)?(?<special>(?:フェイブルド|レジェンダリ|ミシカル)?クリティカル)?。", RegexOptions.Compiled);
-            regexArray[20] = new Regex(logTimeStampRegexStr + @"(?:(?<owner>.+?|あなた)(?:の|'s))? ?(?<skillType>.+?)(?:が|で) ?(?<victim>.+?)に対する(?<target>.*)のヘイト(?:順位)?を ?(?<direction>増加|減少) ?(?<damage>\d+) ?(?<dirType>脅威レベル|position)の?(?<crit>(?:フェイブルド|レジェンダリ|ミシカル)?クリティカル)?。", RegexOptions.Compiled);
+            regexArray[20] = new Regex(logTimeStampRegexStr + @"(?:(?<owner>[^\\].+?|あなた)(?:の|'s))? ?(?<skillType>.+?)(?:が|で) ?(?<victim>.+?)に対する(?<target>.*)のヘイト(?:順位)?を ?(?<direction>増加|減少) ?(?<damage>\d+) ?(?<dirType>脅威レベル|position)の?(?<crit>(?:フェイブルド|レジェンダリ|ミシカル)?クリティカル)?。", RegexOptions.Compiled);
             regexArray[21] = new Regex(logTimeStampRegexStr + @"(?<attacker>.+?|あなた)(?:の|'s) ?(?<skillType>.+?)が ?(?:(?<victim>.+?|あなた))の ?(?<affliction>.+?)を ?(?<action>ディスペル|治療)しました。", RegexOptions.Compiled);
             regexArray[22] = new Regex(logTimeStampRegexStr + @"(?<healer>.+?)[はが] ?(?<attacker>.+?)から(?<victim>.+?)へのダメージを ?(?<damage>\d+) ?減らし(?:まし)?た。", RegexOptions.Compiled);
         }
